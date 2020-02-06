@@ -8,6 +8,9 @@ edition = "2018"
 
 [dependencies]
 twitchchat = "0.8.0-beta.4"
+log = "0.4"
+yansi = "0.5.0"
+flexi_logger = {version="0.14", features=["colors"]}
 
 [dependencies.tokio]
 version = "0.2.11"
