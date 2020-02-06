@@ -1,0 +1,20 @@
+[package]
+name = "chb4"
+version = "0.1.0"
+authors = ["Chronophylos <nikolai@chronophylos.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+twitchchat = "0.8.0-beta.4"
+
+[dependencies.tokio]
+version = "0.2.11"
+default-features = false
+features = ["dns", "io-util", "macros", "stream", "sync", "tcp", "time"]
+
+[dependencies.futures]
+version = "0.3.1"
+default-features = false
+features = ["alloc"] # for AbortHandle
