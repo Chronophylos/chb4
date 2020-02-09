@@ -3,6 +3,10 @@ extern crate log;
 extern crate config;
 
 mod log_format;
+
+use twitchchat::{client::Error, client::Status, events, Client, Secure};
+// so .next() can be used on the EventStream
+// futures::stream::StreamExt will also work
 use tokio::stream::StreamExt as _;
 
 #[tokio::main]
@@ -39,7 +43,7 @@ async fn main() {
     let channel = nick.clone();
 
     // connect via (tls or normal, 'Secure' determines that) tcp with this nick and password
-    let (read, write) = twitchchat::connect_easy(&nick, &pass, twitchchat::Secure::Nope)
+    let (read, write) = twitchchat::connect_easy(&nick, &pass, Secure::UseTls)
         .await
         .unwrap();
 
@@ -52,7 +56,7 @@ async fn main() {
     error!("error");
 
     // make a client. the client is clonable
-    let client = twitchchat::Client::new();
+    let client = Client::new();
 
     // get a future that resolves when the client is done reading, fails to read/write or is
     // stopped
@@ -61,10 +65,7 @@ async fn main() {
     // subscribe to an event stream
 
     // for privmsg (what users send to channels)
-    let mut privmsg = client
-        .dispatcher()
-        .await
-        .subscribe::<twitchchat::events::Privmsg>();
+    let mut privmsg = client.dispatcher().await.subscribe::<events::Privmsg>();
 
     // spawn a task to consume the stream
     tokio::task::spawn(async move {
@@ -75,10 +76,7 @@ async fn main() {
     });
 
     // for join (when a user joins a channel)
-    let mut join = client
-        .dispatcher()
-        .await
-        .subscribe::<twitchchat::events::Join>();
+    let mut join = client.dispatcher().await.subscribe::<events::Join>();
 
     tokio::task::spawn(async move {
         while let Some(msg) = join.next().await {
@@ -92,10 +90,7 @@ async fn main() {
     });
 
     // for privmsg again
-    let mut bot = client
-        .dispatcher()
-        .await
-        .subscribe::<twitchchat::events::Privmsg>();
+    let mut bot = client.dispatcher().await.subscribe::<events::Privmsg>();
 
     // we can move the client to another task by cloning it
     let bot_client = client.clone();
@@ -128,7 +123,7 @@ async fn main() {
     // join a channel, methods on writer return false if the client is disconnected
     if let Err(err) = client.writer().join(&channel).await {
         match err {
-            twitchchat::client::Error::InvalidChannel(..) => {
+            Error::InvalidChannel(..) => {
                 error!("could not join channel because the name is empty");
                 std::process::exit(1);
             }
@@ -142,10 +137,10 @@ async fn main() {
 
     // await for the client to be done
     match done.await {
-        Ok(twitchchat::client::Status::Eof) => {
+        Ok(Status::Eof) => {
             info!("done!");
         }
-        Ok(twitchchat::client::Status::Canceled) => {
+        Ok(Status::Canceled) => {
             info!("client was stopped by user");
         }
         Err(err) => {
