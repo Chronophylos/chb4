@@ -3,6 +3,7 @@ extern crate log;
 extern crate config;
 
 mod log_format;
+use tokio::stream::StreamExt as _;
 
 #[tokio::main]
 async fn main() {
@@ -33,8 +34,6 @@ async fn main() {
         .unwrap_or_else(|e| panic!("Loading config from env failed with {}", e));
     info!("Loaded config");
 
-    use futures::prelude::*;
-
     let nick = settings.get_str("twitch.nick").unwrap();
     let pass = settings.get_str("twitch.pass").unwrap();
     let channel = nick.clone();
@@ -55,16 +54,18 @@ async fn main() {
     // make a client. the client is clonable
     let client = twitchchat::Client::new();
 
-    // get a future that resolves when the client is done reading, fails to read/write or is stopped
+    // get a future that resolves when the client is done reading, fails to read/write or is
+    // stopped
     let done = client.run(read, write);
-
-    // get an event dispatcher
-    let mut dispatcher = client.dispatcher().await;
 
     // subscribe to an event stream
 
     // for privmsg (what users send to channels)
-    let mut privmsg = dispatcher.subscribe::<twitchchat::events::Privmsg>();
+    let mut privmsg = client
+        .dispatcher()
+        .await
+        .subscribe::<twitchchat::events::Privmsg>();
+
     // spawn a task to consume the stream
     tokio::task::spawn(async move {
         while let Some(msg) = privmsg.next().await {
@@ -74,7 +75,11 @@ async fn main() {
     });
 
     // for join (when a user joins a channel)
-    let mut join = dispatcher.subscribe::<twitchchat::events::Join>();
+    let mut join = client
+        .dispatcher()
+        .await
+        .subscribe::<twitchchat::events::Join>();
+
     tokio::task::spawn(async move {
         while let Some(msg) = join.next().await {
             trace!("Got JOIN");
@@ -87,7 +92,11 @@ async fn main() {
     });
 
     // for privmsg again
-    let mut bot = dispatcher.subscribe::<twitchchat::events::Privmsg>();
+    let mut bot = client
+        .dispatcher()
+        .await
+        .subscribe::<twitchchat::events::Privmsg>();
+
     // we can move the client to another task by cloning it
     let bot_client = client.clone();
     tokio::task::spawn(async move {
@@ -114,17 +123,12 @@ async fn main() {
         }
     });
 
-    // dispatcher has an RAII guard, so keep it scoped
-    // dropping it here so everything can proceed while keeping example brief
-    drop(dispatcher);
-    debug!("Dropped dispatcher");
-
     info!("joining channel");
     // get a clonable writer from the client
     // join a channel, methods on writer return false if the client is disconnected
     if let Err(err) = client.writer().join(&channel).await {
         match err {
-            twitchchat::Error::InvalidChannel(..) => {
+            twitchchat::client::Error::InvalidChannel(..) => {
                 error!("could not join channel because the name is empty");
                 std::process::exit(1);
             }
