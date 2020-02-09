@@ -1,33 +1,50 @@
 #[macro_use]
 extern crate log;
-extern crate flexi_logger;
-extern crate yansi;
+extern crate config;
+
+mod log_format;
 
 #[tokio::main]
 async fn main() {
-    flexi_logger::Logger::with_env()
-        .format(custom_log_format)
+    // should only be run once
+    flexi_logger::Logger::with_env_or_str("chb4=trace, twitchchat=debug")
+        .format(log_format::format)
         .start()
         .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
 
+    let mut settings = config::Config::new();
+    settings
+        .merge(
+            // look for config in system config directory
+            config::File::with_name("/etc/chb4/config")
+                .format(config::FileFormat::Toml)
+                .required(false),
+        )
+        .unwrap_or_else(|e| panic!("Loading config from /etc/chb4 failed with {}", e))
+        .merge(
+            // look for config in working directory
+            config::File::with_name("config")
+                .format(config::FileFormat::Toml)
+                .required(false),
+        )
+        .unwrap_or_else(|e| panic!("Loading config from current directory failed with {}", e))
+        // look for config in environment
+        .merge(config::Environment::with_prefix("CHB4").separator("_"))
+        .unwrap_or_else(|e| panic!("Loading config from env failed with {}", e));
+    info!("Loaded config");
+
     use futures::prelude::*;
 
-    let (nick, pass) = (
-        // twitch name
-        std::env::var("TWITCH_NICK").unwrap(),
-        // oauth token for twitch name
-        std::env::var("TWITCH_PASS").unwrap(),
-    );
-
-    // putting this in the env so people don't join my channel when running this
-    let channel = std::env::var("TWITCH_CHANNEL").unwrap();
+    let nick = settings.get_str("twitch.nick").unwrap();
+    let pass = settings.get_str("twitch.pass").unwrap();
+    let channel = nick.clone();
 
     // connect via (tls or normal, 'Secure' determines that) tcp with this nick and password
     let (read, write) = twitchchat::connect_easy(&nick, &pass, twitchchat::Secure::Nope)
         .await
         .unwrap();
 
-    info!("creating new client");
+    info!("Creating new twitch client");
 
     trace!("trace");
     debug!("debug");
@@ -72,9 +89,9 @@ async fn main() {
     // for privmsg again
     let mut bot = dispatcher.subscribe::<twitchchat::events::Privmsg>();
     // we can move the client to another task by cloning it
-    //?? why should I do this and what does it do?
     let bot_client = client.clone();
     tokio::task::spawn(async move {
+        // get writer from cloned client so we dont move the original
         let mut writer = bot_client.writer();
         while let Some(msg) = bot.next().await {
             match msg.data.split(" ").next() {
@@ -83,9 +100,11 @@ async fn main() {
                     bot_client.stop().await.unwrap();
                 }
                 Some("!hello") => {
+                    debug!("Got hello");
                     let response = format!("hello {}!", msg.name);
                     // send a message in response
-                    if let Err(_err) = writer.privmsg(&msg.channel, &response).await {
+                    if let Err(err) = writer.privmsg(&msg.channel, &response).await {
+                        error!("Writing message to {} failed with {}", &msg.channel, err);
                         // we ran into a write error, we should probably leave this task
                         return;
                     }
@@ -98,7 +117,7 @@ async fn main() {
     // dispatcher has an RAII guard, so keep it scoped
     // dropping it here so everything can proceed while keeping example brief
     drop(dispatcher);
-    trace!("dropped dispatcher");
+    debug!("Dropped dispatcher");
 
     info!("joining channel");
     // get a clonable writer from the client
@@ -137,37 +156,4 @@ async fn main() {
     // another way would be to clear all subscriptions
     // clearing the subscriptions would close each event stream
     client.dispatcher().await.clear_subscriptions_all();
-}
-fn custom_log_format(
-    w: &mut dyn std::io::Write,
-    now: &mut flexi_logger::DeferredNow,
-    record: &flexi_logger::Record,
-) -> Result<(), std::io::Error> {
-    let level = record.level();
-    write!(
-        w,
-        " {} {:<5} {} > {}",
-        now.now().format("%Y-%m-%d %H:%M:%S"),
-        style_level(level, record.level()),
-        yansi::Paint::new(record.module_path().unwrap_or("<unnamed>")).bold(),
-        style_message(level, &record.args())
-    )
-}
-fn style_level<T>(level: log::Level, item: T) -> yansi::Paint<T> {
-    match level {
-        log::Level::Error => yansi::Paint::red(item).bold(),
-        log::Level::Warn => yansi::Paint::yellow(item).bold(),
-        log::Level::Info => yansi::Paint::green(item),
-        log::Level::Debug => yansi::Paint::blue(item),
-        log::Level::Trace => yansi::Paint::fixed(5, item),
-    }
-}
-fn style_message<T>(level: log::Level, item: T) -> yansi::Paint<T> {
-    match level {
-        log::Level::Error => yansi::Paint::red(item),
-        log::Level::Warn => yansi::Paint::yellow(item),
-        log::Level::Info => yansi::Paint::white(item),
-        log::Level::Debug => yansi::Paint::fixed(8, item),
-        log::Level::Trace => yansi::Paint::fixed(8, item).italic(),
-    }
 }
