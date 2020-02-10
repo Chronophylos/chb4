@@ -11,5 +11,6 @@
 * Invoke Command with arguments from message
 
 ## Action System
-* Only listen to messages matching a regex
+* Listen to messages matching a regex
+* Or to other events (user joined a channel, bot connected)
 * Invoke Action with regex match
