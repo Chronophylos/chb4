@@ -4,6 +4,7 @@ v1.0, 2020-02-13
 
 image:https://github.com/Chronophylos/chb4/workflows/Test/badge.svg[Tests]
 image:https://github.com/Chronophylos/chb4/workflows/Clippy/badge.svg[Clippy]
+image:https://app.fossa.com/api/projects/git%2Bgithub.com%2FChronophylos%2Fchb4.svg?type=shield[Fossa]
 
 A Twitchbot written in Rust.
 
