@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - run: sudo apt-get install default-libmysqlclient-dev
       - uses: actions/checkout@v2
       - name: Build
         run: cargo build --verbose
@@ -19,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - run: apt install default-libmysqlclient-dev
-      - uses: actions/checkout@v1
+      - run: sudo apt-get install default-libmysqlclient-dev
+      - uses: actions/checkout@v2
       - run: rustup component add clippy
       - name: rust-clippy-check
         uses: actions-rs/clippy-check@v1.0.5
