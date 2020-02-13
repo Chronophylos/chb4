@@ -15,3 +15,4 @@
 * Listen to messages matching a regex
 * Or to other events (user joined a channel, bot connected)
 * Invoke Action with regex match
+* every action can be checked at the same time (async)
