@@ -1,0 +1,31 @@
+= ChronophylosBot Version 4
+Chronophylos
+v1.0, 2020-02-13
+
+A Twitchbot written in Rust.
+
+== Description
+
+After rewriting my bot several times first in TypeScript, then in Golang, I decided to do it again. But this time in Rust.
+
+== Features
+
+None, yet
+
+== Planned Features
+
+Multiple API Integrations, such as::
+    Weather::
+        either
+        * openweathermap.com or
+        * darksky.net
+    Find a location by name::
+        nominatim for openstreetmap
+    Spotify::
+        check the currently playing song in a channel
+
+and more that I didn't write here, yet
+
+== License
+
+CHB4 is licensed under the link:LICENSE[MIT License]
