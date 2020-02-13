@@ -6,10 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - Genesis
-
 ### Added
 * Connection to Twitch
 * Connection to the Database
 
+<!--links-->
+
 [0.1.0]: https://github.com/Chronophylos/chb4/releases/tag/v0.1.0
+
+<!--vim: set foldlevel=9:-->
