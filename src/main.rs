@@ -3,20 +3,23 @@
 extern crate log;
 #[macro_use]
 extern crate diesel;
+extern crate chrono;
 extern crate config;
 
 mod actionhandler;
+mod db;
 mod log_format;
 mod models;
 mod schema;
 
+use chrono::prelude::*;
 use diesel::mysql::MysqlConnection;
 use diesel::prelude::*;
 use twitchchat::{client::Error, client::Status, events, Client, Secure};
 // so .next() can be used on the EventStream
 // futures::stream::StreamExt will also work
-use tokio::stream::StreamExt as _;
 use std::env;
+use tokio::stream::StreamExt as _;
 
 #[tokio::main]
 async fn main() {
@@ -56,7 +59,7 @@ async fn main() {
 
     info!("Created Action Handler");
 
-    let _db = connect_to_db(&settings);
+    let db = connect_to_db(&settings);
     info!("Connected to Database");
 
     let nick = settings.get_str("twitch.nick").unwrap();
@@ -87,7 +90,19 @@ async fn main() {
         tokio::task::spawn(async move {
             while let Some(msg) = privmsg.next().await {
                 trace!("Got PRIVMSG message");
-                info!("[{}] {}: {}", msg.channel, msg.name, msg.data);
+
+                let tags: &twitchchat::Tags = &msg.tags;
+                let user_id: String = tags.get_parsed("user-id").unwrap();
+                let name = msg.name.to_owned();
+                let display_name: String = tags.get_parsed("display-name").unwrap();
+
+                db::bump_user(
+                    &db,
+                    &user_id,
+                    &name,
+                    &display_name,
+                    &Local::now().naive_local(),
+                );
             }
         });
     }
@@ -104,7 +119,10 @@ async fn main() {
                 // we've joined a channel
                 if msg.name == nick {
                     info!("Joined {}", msg.channel);
-                    if let Err(err) = writer.privmsg(&msg.channel, "Connected with version {}").await {
+                    if let Err(err) = writer
+                        .privmsg(&msg.channel, &format!("Connected with version {}", version))
+                        .await
+                    {
                         error!("Could not write to channel {}", err);
                         break;
                     }

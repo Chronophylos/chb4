@@ -1,7 +1,6 @@
-use diesel::sql_types::Datetime;
-use diesel::sql_types::Nullable;
-use diesel::sql_types::Unsigned;
-use diesel::sql_types::Varchar;
+use super::schema::users;
+use chrono::prelude::*;
+use diesel::sql_types::{Datetime, Nullable, Unsigned, Varchar};
 
 #[derive(Queryable)]
 pub struct Bans {
@@ -53,6 +52,24 @@ pub struct Users {
     pub last_seen: Nullable<Datetime>,
     pub person_id: Nullable<Unsigned<u8>>,
     pub permission: u8,
+}
+
+#[derive(Insertable)]
+#[table_name = "users"]
+pub struct NewUser<'a> {
+    pub twitch_id: &'a str,
+    pub name: &'a str,
+    pub display_name: &'a str,
+    pub first_seen: &'a NaiveDateTime,
+    pub last_seen: &'a NaiveDateTime,
+}
+
+#[derive(AsChangeset)]
+#[table_name = "users"]
+pub struct BumpUser<'a> {
+    pub name: &'a str,
+    pub display_name: &'a str,
+    pub last_seen: &'a NaiveDateTime,
 }
 
 #[derive(Queryable)]
