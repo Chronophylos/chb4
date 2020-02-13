@@ -2,8 +2,8 @@
 Chronophylos
 v1.0, 2020-02-13
 
-image::https://github.com/Chronophylos/chb4/workflows/Test/badge.svg[Tests]
-image::https://github.com/Chronophylos/chb4/workflows/Clippy/badge.svg[Clippy]
+image:https://github.com/Chronophylos/chb4/workflows/Test/badge.svg[Tests]
+image:https://github.com/Chronophylos/chb4/workflows/Clippy/badge.svg[Clippy]
 
 A Twitchbot written in Rust.
 
