@@ -1,6 +1,7 @@
 /// stub
 struct Action {
     name: String,
+    #[allow(dead_code)]
     aliases: Vec<String>,
     whitelisted: bool,
 }
@@ -32,7 +33,7 @@ impl ActionHandler {
     pub fn handle_privmsg(
         &self,
         msg: std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
-        writer: &twitchchat::client::Writer,
+        _writer: &twitchchat::client::Writer,
     ) {
         let words: Vec<&str> = msg.data.trim().split_whitespace().collect();
         let mut command = words[0].to_owned();

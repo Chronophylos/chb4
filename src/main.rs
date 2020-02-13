@@ -74,45 +74,55 @@ async fn main() {
 
     // subscribe to an event stream
 
-    // for privmsg (what users send to channels)
-    let mut privmsg = client.dispatcher().await.subscribe::<events::Privmsg>();
+    {
+        // for privmsg (what users send to channels)
+        let mut privmsg = client.dispatcher().await.subscribe::<events::Privmsg>();
 
-    // spawn a task to consume the stream
-    tokio::task::spawn(async move {
-        while let Some(msg) = privmsg.next().await {
-            trace!("Got PRIVMSG message");
-            info!("[{}] {}: {}", msg.channel, msg.name, msg.data);
-        }
-    });
+        // spawn a task to consume the stream
+        tokio::task::spawn(async move {
+            while let Some(msg) = privmsg.next().await {
+                trace!("Got PRIVMSG message");
+                info!("[{}] {}: {}", msg.channel, msg.name, msg.data);
+            }
+        });
+    }
 
     // for join (when a user joins a channel)
-    let mut join = client.dispatcher().await.subscribe::<events::Join>();
+    {
+        let mut join = client.dispatcher().await.subscribe::<events::Join>();
 
-    tokio::task::spawn(async move {
-        while let Some(msg) = join.next().await {
-            let writer = client.writer();
-            trace!("Got JOIN message");
-            // we've joined a channel
-            if msg.name == nick {
-                info!("Joined {}", msg.channel);
-                writer.privmsg(&msg.channel, String::from("Connected monakS"))
-                break; // returning/dropping the stream un-subscribes it
+        let join_client = client.clone();
+        tokio::task::spawn(async move {
+            while let Some(msg) = join.next().await {
+                let mut writer = join_client.writer();
+                trace!("Got JOIN message");
+                // we've joined a channel
+                if msg.name == nick {
+                    info!("Joined {}", msg.channel);
+                    if let Err(err) = writer.privmsg(&msg.channel, "Connected with version {}").await {
+                        error!("Could not write to channel {}", err);
+                        break;
+                    }
+                    break; // returning/dropping the stream un-subscribes it
+                }
             }
-        }
-    });
+        });
+    }
 
     // for privmsg again
-    let mut bot = client.dispatcher().await.subscribe::<events::Privmsg>();
+    {
+        let mut bot = client.dispatcher().await.subscribe::<events::Privmsg>();
 
-    // we can move the client to another task by cloning it
-    let bot_client = client.clone();
-    tokio::task::spawn(async move {
-        // get writer from cloned client so we dont move the original
-        let writer = bot_client.writer();
-        while let Some(msg) = bot.next().await {
-            actions.handle_privmsg(msg, &writer);
-        }
-    });
+        // we can move the client to another task by cloning it
+        let bot_client = client.clone();
+        tokio::task::spawn(async move {
+            // get writer from cloned client so we dont move the original
+            let writer = bot_client.writer();
+            while let Some(msg) = bot.next().await {
+                actions.handle_privmsg(msg, &writer);
+            }
+        });
+    }
 
     info!("Joining channel {}", &channel);
     // get a clonable writer from the client
