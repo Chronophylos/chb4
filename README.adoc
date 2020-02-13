@@ -1,3 +1,5 @@
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FChronophylos%2Fchb4.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FChronophylos%2Fchb4?ref=badge_shield)
+
 = ChronophylosBot Version 4
 Chronophylos
 v1.0, 2020-02-13
@@ -42,3 +44,7 @@ Feel free to open a PR
 * https://github.com/Supinic/supibot[Supibot by Supinic]
 * https://github.com/pajbot/pajbot[Pajbot by Pajlada]
 * https://github.com/pajbot/pajbot2[Pajbot2 by Pajlada]
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FChronophylos%2Fchb4.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FChronophylos%2Fchb4?ref=badge_large)
