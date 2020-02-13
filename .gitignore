@@ -1,3 +1,4 @@
 /target
 *.mwb.bak
 config.toml
+.env
