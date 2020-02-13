@@ -29,3 +29,13 @@ and more that I didn't write here, yet
 == License
 
 CHB4 is licensed under the link:LICENSE[MIT License]
+
+== Contributing
+
+Feel free to open a PR
+
+== Other cool Twitchbots
+
+* https://github.com/Supinic/supibot[Supibot by Supinic]
+* https://github.com/pajbot/pajbot[Pajbot by Pajlada]
+* https://github.com/pajbot/pajbot2[Pajbot2 by Pajlada]
