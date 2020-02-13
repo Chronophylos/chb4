@@ -1,14 +1,22 @@
+#![warn(clippy::all)]
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate diesel;
 extern crate config;
 
 mod actionhandler;
 mod log_format;
+mod models;
+mod schema;
 
+use diesel::mysql::MysqlConnection;
+use diesel::prelude::*;
 use twitchchat::{client::Error, client::Status, events, Client, Secure};
 // so .next() can be used on the EventStream
 // futures::stream::StreamExt will also work
 use tokio::stream::StreamExt as _;
+use std::env;
 
 #[tokio::main]
 async fn main() {
@@ -42,6 +50,9 @@ async fn main() {
     let actions = actionhandler::new();
 
     info!("Created Action Handler");
+
+    let _db = connect_to_db(&settings);
+    info!("Connected to Database");
 
     let nick = settings.get_str("twitch.nick").unwrap();
     let pass = settings.get_str("twitch.pass").unwrap();
@@ -140,4 +151,15 @@ async fn main() {
     // another way would be to clear all subscriptions
     // clearing the subscriptions would close each event stream
     client.dispatcher().await.clear_subscriptions_all();
+}
+
+fn connect_to_db(s: &config::Config) -> MysqlConnection {
+    let database_url = s.get_str("database.url").unwrap();
+
+    MysqlConnection::establish(&database_url).unwrap_or_else(|e| {
+        panic!(
+            "Connecting to database at {} failed with: {}",
+            database_url, e
+        )
+    })
 }
