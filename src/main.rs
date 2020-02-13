@@ -26,6 +26,11 @@ async fn main() {
         .start()
         .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
 
+    let version = env!("CARGO_PKG_VERSION");
+    let git_hash = env!("GIT_HASH");
+
+    info!("Starting CHB4 {} ({})", version, git_hash);
+
     let mut settings = config::Config::new();
     settings
         .merge(
