@@ -7,6 +7,7 @@ extern crate chrono;
 extern crate config;
 
 mod actionhandler;
+mod commandhandler;
 mod db;
 mod log_format;
 mod models;
@@ -57,6 +58,7 @@ async fn main() {
     info!("Loaded config");
 
     let actions = actionhandler::new();
+    let commands = commandhandler::new();
 
     info!("Created Action Handler");
 
@@ -143,7 +145,8 @@ async fn main() {
             // get writer from cloned client so we dont move the original
             let writer = bot_client.writer();
             while let Some(msg) = bot.next().await {
-                actions.handle_privmsg(msg, &writer);
+                actions.handle_privmsg(&msg, &writer);
+                commands.handle_privmsg(&msg, &writer);
             }
         });
     }

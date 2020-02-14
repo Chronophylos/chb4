@@ -1,25 +1,23 @@
-/// stub
+use regex::Regex;
+
 struct Action {
     name: String,
-    #[allow(dead_code)]
-    aliases: Vec<String>,
+    regex: Regex,
     whitelisted: bool,
 }
 
 pub struct ActionHandler {
     actions: Vec<Action>,
-    prefix: char,
 }
 
 impl Default for ActionHandler {
     fn default() -> Self {
         Self {
             actions: vec![Action {
-                name: String::from("dummy"),
-                aliases: vec![],
+                name: String::from("test"),
+                regex: Regex::new(r"^test").unwrap(),
                 whitelisted: true,
             }],
-            prefix: '§',
         }
     }
 }
@@ -30,32 +28,26 @@ impl ActionHandler {
         Self::default()
     }
 
+    /// Handle a privmsg
     pub fn handle_privmsg(
         &self,
-        msg: std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
+        msg: &std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
         _writer: &twitchchat::client::Writer,
     ) {
-        let words: Vec<&str> = msg.data.trim().split_whitespace().collect();
-        let mut command = words[0].to_owned();
-        let prefix = command.remove(0);
+        let message = msg.data.to_string();
 
-        if prefix != self.prefix {
-            trace!("Dropping message because prefix was not found");
-            return;
-        }
+        debug!("Message: {}", message);
 
-        let args = &words[1..];
-        debug!("Command: {} Args: {:?}", command, args);
+        let actions = self
+            .actions
+            .iter()
+            .filter(|&act| act.regex.is_match(&message));
+        for action in actions {
+            debug!("Found matching action {}", action.name);
 
-        let action = self.actions.iter().find(|&a| command == a.name);
-        match action {
-            Some(a) => {
-                debug!("Found matching action {}", a.name);
-                if a.whitelisted {
-                    debug!("Executing action");
-                }
+            if action.whitelisted {
+                debug!("Executing action");
             }
-            None => debug!("No matching action found"),
         }
     }
 }

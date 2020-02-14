@@ -79,6 +79,7 @@ dependencies = [
  "diesel_migrations",
  "flexi_logger",
  "log",
+ "regex",
  "tokio",
  "twitchchat",
  "yansi",
