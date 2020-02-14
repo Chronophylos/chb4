@@ -7,7 +7,7 @@ extern crate chrono;
 extern crate config;
 
 mod actionhandler;
-mod commandhandler;
+mod commands;
 mod db;
 mod log_format;
 mod models;
@@ -58,7 +58,7 @@ async fn main() {
     info!("Loaded config");
 
     let actions = actionhandler::new();
-    let commands = commandhandler::new();
+    let commands = commands::handler::new();
 
     info!("Created Action Handler");
 
@@ -146,7 +146,7 @@ async fn main() {
             let writer = bot_client.writer();
             while let Some(msg) = bot.next().await {
                 actions.handle_privmsg(&msg, &writer);
-                commands.handle_privmsg(&msg, &writer);
+                commands.handle_privmsg(&msg, &mut writer.clone()).await;
             }
         });
     }

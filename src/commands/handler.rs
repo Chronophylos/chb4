@@ -1,18 +1,6 @@
 //! Everything needed to handle and create commands
+use super::command::Command;
 use std::collections::HashMap;
-
-struct Command {
-    name: String,
-    aliases: Vec<String>,
-    #[allow(dead_code)]
-    chainable: bool,
-    whitelisted: bool,
-}
-
-struct CommandResult {
-    message: Option<String>,
-    arguments: Vec<String>,
-}
 
 pub struct CommandHandler {
     commands: HashMap<String, Command>,
@@ -62,12 +50,13 @@ impl CommandHandler {
     }
 
     /// Handle a privmsg
-    pub fn handle_privmsg(
+    pub async fn handle_privmsg(
         &self,
         msg: &std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
-        _writer: &twitchchat::client::Writer,
+        writer: &mut twitchchat::client::Writer,
     ) {
-        let words: Vec<&str> = msg.data.trim().split_whitespace().collect();
+        let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
+        let words: Vec<&str> = message.split_whitespace().collect();
         let mut command_name = words[0].to_owned();
         let prefix = command_name.remove(0);
 
@@ -82,12 +71,20 @@ impl CommandHandler {
         match self.get_command(command_name) {
             Some(cmd) => {
                 debug!("Found matching command {}", cmd.name);
-                if cmd.whitelisted {
+                if !cmd.whitelisted {
+                    // or the command is enabled in this channel
                     debug!("Executing command");
-                    // match cmd.execute(args) {
-                    //     Ok(r) => {}
-                    //     Err(e) => error!("Could not execute command (name: {}): {}", cmd.name, e),
-                    // }
+                    match cmd.execute(args.to_vec()) {
+                        Ok(r) => {
+                            if r.message.is_some() {
+                                writer
+                                    .privmsg(&msg.channel, &r.message.unwrap())
+                                    .await
+                                    .expect("Could not write to channel");
+                            }
+                        }
+                        Err(e) => error!("Could not execute command (name: {}): {}", cmd.name, e),
+                    }
                 }
             }
             None => debug!("No matching command found"),
@@ -96,14 +93,10 @@ impl CommandHandler {
 }
 
 pub fn new() -> CommandHandler {
+    use super::test;
     let mut ch = CommandHandler::new();
 
-    ch.add_command(Command {
-        name: String::from("test"),
-        aliases: vec![],
-        chainable: false,
-        whitelisted: true,
-    });
+    ch.add_command(test::command());
 
     ch
 }
