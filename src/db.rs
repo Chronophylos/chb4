@@ -1,3 +1,6 @@
+//! This module currently holds all database interacting functions.
+//! This will change later as I move everything into their own module.
+
 use crate::models::{BumpUser, NewUser};
 use chrono::prelude::*;
 use diesel::prelude::*;

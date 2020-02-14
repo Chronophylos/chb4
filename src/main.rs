@@ -21,6 +21,7 @@ use twitchchat::{client::Error, client::Status, events, Client, Secure};
 use std::env;
 use tokio::stream::StreamExt as _;
 
+/// The main is currently full of bloat. The plan is to move everything into their own module
 #[tokio::main]
 async fn main() {
     // should only be run once
