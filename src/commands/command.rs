@@ -46,18 +46,6 @@ pub struct CommandBuilder {
     command: fn(Vec<&str>) -> CommandResult,
 }
 
-impl Default for CommandBuilder {
-    fn default() -> Self {
-        Self {
-            name: String::from("<No Name>"),
-            aliases: vec![],
-            chainable: false,
-            whitelisted: false,
-            command: noop,
-        }
-    }
-}
-
 impl Into<Command> for CommandBuilder {
     fn into(self) -> Command {
         Command {
@@ -74,7 +62,13 @@ impl Into<Command> for CommandBuilder {
 /// Builder functions
 impl CommandBuilder {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            name: String::from("<No Name>"),
+            aliases: vec![],
+            chainable: false,
+            whitelisted: false,
+            command: noop,
+        }
     }
 
     pub fn with_name(name: String) -> Self {
@@ -94,13 +88,13 @@ impl CommandBuilder {
         self
     }
 
-    pub fn chainable(mut self, c: bool) -> Self {
-        self.chainable = c;
+    pub fn chainable(mut self) -> Self {
+        self.chainable = true;
         self
     }
 
-    pub fn whitelisted(mut self, w: bool) -> Self {
-        self.whitelisted = w;
+    pub fn whitelisted(mut self) -> Self {
+        self.whitelisted = true;
         self
     }
 

@@ -17,3 +17,4 @@ diesel            = { version = "1.0", default-features = false, features = ["my
 diesel_migrations = "1.4"
 chrono            = "0.4"
 regex             = "1"
+rand              = { version = "0.7", features = ["log"] }

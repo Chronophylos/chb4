@@ -10,20 +10,14 @@ pub struct CommandHandler {
     prefix: char,
 }
 
-impl Default for CommandHandler {
-    fn default() -> Self {
+impl CommandHandler {
+    /// Create a new CommandHandler
+    pub fn new() -> Self {
         Self {
             commands: HashMap::new(),
             aliases: HashMap::new(),
             prefix: '§',
         }
-    }
-}
-
-impl CommandHandler {
-    /// Create a new CommandHandler
-    pub fn new() -> Self {
-        Self::default()
     }
 
     /// Add `command` to the CommandHandler by saving it in `commands` with `name` as key.

@@ -5,8 +5,9 @@ extern crate log;
 extern crate diesel;
 extern crate chrono;
 extern crate config;
+extern crate regex;
 
-mod actionhandler;
+mod actions;
 mod commands;
 mod db;
 mod log_format;
@@ -57,10 +58,12 @@ async fn main() {
         .unwrap_or_else(|e| panic!("Loading config from env failed with {}", e));
     info!("Loaded config");
 
-    let actions = actionhandler::new();
+    let actions = actions::handler::new();
+    info!("Created Action Handler");
+
     let commands = commands::handler::new();
 
-    info!("Created Action Handler");
+    info!("Created Command Handler");
 
     let db = connect_to_db(&settings);
     info!("Connected to Database");
@@ -145,7 +148,7 @@ async fn main() {
             // get writer from cloned client so we dont move the original
             let writer = bot_client.writer();
             while let Some(msg) = bot.next().await {
-                actions.handle_privmsg(&msg, &writer);
+                actions.handle_privmsg(&msg, &mut writer.clone());
                 commands.handle_privmsg(&msg, &mut writer.clone()).await;
             }
         });

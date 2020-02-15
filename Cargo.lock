@@ -79,6 +79,7 @@ dependencies = [
  "diesel_migrations",
  "flexi_logger",
  "log",
+ "rand",
  "regex",
  "tokio",
  "twitchchat",
@@ -664,6 +665,7 @@ checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
 dependencies = [
  "getrandom",
  "libc",
+ "log",
  "rand_chacha",
  "rand_core",
  "rand_hc",
