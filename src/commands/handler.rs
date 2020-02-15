@@ -1,5 +1,5 @@
 //! Everything needed to handle and create commands
-use super::command::Command;
+use super::command::{Command, CommandResult};
 use std::collections::HashMap;
 
 pub struct CommandHandler {
@@ -29,23 +29,18 @@ impl CommandHandler {
     /// Add `command` to the CommandHandler by saving it in `commands` with `name` as key.
     /// Save all of it's aliases in `aliases` with `name` as value and the respective alias as key.
     fn add_command(&mut self, command: Command) {
-        let name = command.name.clone();
-
         // insert aliases into alias map
-        for alias in &command.aliases {
-            self.aliases.insert(alias.to_owned(), name.clone());
+        for alias in command.aliases() {
+            self.aliases.insert(alias.to_owned(), command.name());
         }
 
         // insert command into command map
-        self.commands.insert(name, command);
+        self.commands.insert(command.name(), command);
     }
 
     /// Get a command by `name`. This can either be the command name or any of it's aliases.
     fn get_command(&self, name: String) -> Option<&Command> {
-        let name = match self.aliases.get(&name) {
-            Some(n) => n,
-            _ => &name,
-        };
+        let name = self.aliases.get(&name).unwrap_or(&name);
         self.commands.get(name)
     }
 
@@ -70,20 +65,23 @@ impl CommandHandler {
 
         match self.get_command(command_name) {
             Some(cmd) => {
-                debug!("Found matching command {}", cmd.name);
-                if !cmd.whitelisted {
+                debug!("Found matching command {}", cmd.name());
+                if !cmd.whitelisted() {
                     // or the command is enabled in this channel
                     debug!("Executing command");
                     match cmd.execute(args.to_vec()) {
-                        Ok(r) => {
-                            if r.message.is_some() {
-                                writer
-                                    .privmsg(&msg.channel, &r.message.unwrap())
-                                    .await
-                                    .expect("Could not write to channel");
-                            }
+                        CommandResult::Message(m) => {
+                            writer
+                                .privmsg(&msg.channel, &m)
+                                .await
+                                .expect("Could not write to channel");
                         }
-                        Err(e) => error!("Could not execute command (name: {}): {}", cmd.name, e),
+                        CommandResult::Chainable(_v) => {
+                            unimplemented!();
+                        }
+                        CommandResult::Error(e) => {
+                            error!("Could not execute command (name: {}): {}", cmd.name(), e);
+                        }
                     }
                 }
             }
@@ -93,10 +91,10 @@ impl CommandHandler {
 }
 
 pub fn new() -> CommandHandler {
-    use super::test;
+    use super::befehle;
     let mut ch = CommandHandler::new();
 
-    ch.add_command(test::command());
+    ch.add_command(befehle::test());
 
     ch
 }

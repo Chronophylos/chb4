@@ -1,16 +1,52 @@
-use std::error;
-use std::fmt;
-
 pub struct Command {
-    pub name: String,
-    pub aliases: Vec<String>,
+    name: String,
+    aliases: Vec<String>,
     #[allow(dead_code)]
-    pub chainable: bool,
-    pub whitelisted: bool,
-    pub command: fn(Vec<&str>) -> Result<CommandResult, Error>,
+    chainable: bool,
+    whitelisted: bool,
+    command: fn(Vec<&str>) -> CommandResult,
 }
 
-impl Default for Command {
+impl Command {
+    pub fn execute(&self, args: Vec<&str>) -> CommandResult {
+        trace!("Executing command {} with args {:?}", self.name, args);
+        (self.command)(args)
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn aliases(&self) -> Vec<String> {
+        self.aliases.clone()
+    }
+
+    #[allow(dead_code)]
+    pub fn chainable(&self) -> bool {
+        self.chainable
+    }
+
+    pub fn whitelisted(&self) -> bool {
+        self.whitelisted
+    }
+}
+
+/// Shadow constructors for `CommandBuilder`
+impl Command {
+    pub fn with_name(name: String) -> CommandBuilder {
+        CommandBuilder::with_name(name)
+    }
+}
+
+pub struct CommandBuilder {
+    name: String,
+    aliases: Vec<String>,
+    chainable: bool,
+    whitelisted: bool,
+    command: fn(Vec<&str>) -> CommandResult,
+}
+
+impl Default for CommandBuilder {
     fn default() -> Self {
         Self {
             name: String::from("<No Name>"),
@@ -22,42 +58,64 @@ impl Default for Command {
     }
 }
 
-impl Command {
-    pub fn execute(&self, args: Vec<&str>) -> Result<CommandResult, Error> {
-        trace!("Executing command {} with args {:?}", self.name, args);
-        (self.command)(args)
+impl Into<Command> for CommandBuilder {
+    fn into(self) -> Command {
+        Command {
+            name: self.name,
+            aliases: self.aliases,
+            chainable: self.chainable,
+            whitelisted: self.whitelisted,
+            command: self.command,
+        }
     }
 }
 
-fn noop(_args: Vec<&str>) -> Result<CommandResult, Error> {
+#[allow(dead_code)]
+/// Builder functions
+impl CommandBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_name(name: String) -> Self {
+        Self {
+            name,
+            ..Self::new()
+        }
+    }
+
+    pub fn command(mut self, f: fn(Vec<&str>) -> CommandResult) -> Self {
+        self.command = f;
+        self
+    }
+
+    pub fn aliases(mut self, a: Vec<String>) -> Self {
+        self.aliases = a;
+        self
+    }
+
+    pub fn chainable(mut self, c: bool) -> Self {
+        self.chainable = c;
+        self
+    }
+
+    pub fn whitelisted(mut self, w: bool) -> Self {
+        self.whitelisted = w;
+        self
+    }
+
+    pub fn done(self) -> Command {
+        Command { ..self.into() }
+    }
+}
+
+fn noop(_args: Vec<&str>) -> CommandResult {
     unimplemented!()
 }
 
-#[derive(Debug)]
-pub struct Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Could not execute command")
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        "A command could not be executed"
-    }
-}
-
-pub struct CommandResult {
-    pub message: Option<String>,
-    pub arguments: Option<Vec<String>>,
-}
-
-impl Default for CommandResult {
-    fn default() -> Self {
-        Self {
-            message: None,
-            arguments: None,
-        }
-    }
+#[allow(dead_code)]
+pub enum CommandResult {
+    Message(String),
+    Chainable(Vec<String>),
+    Error(String),
 }
