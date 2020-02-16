@@ -1,10 +1,10 @@
 use super::action::{Action, ActionResult};
 
-pub struct ActionHandler {
-    actions: Vec<Action>,
+pub struct ActionHandler<'a> {
+    actions: Vec<Action<'a>>,
 }
 
-impl ActionHandler {
+impl<'a> ActionHandler<'a> {
     /// Create a new ActionHandler
     pub fn new() -> Self {
         Self {
@@ -12,7 +12,7 @@ impl ActionHandler {
         }
     }
 
-    fn add_action(&mut self, action: Action) {
+    fn add_action(&mut self, action: Action<'a>) {
         self.actions.push(action);
     }
 
@@ -49,7 +49,7 @@ impl ActionHandler {
     }
 }
 
-pub fn new() -> ActionHandler {
+pub fn new<'a>() -> ActionHandler<'a> {
     use super::aktionen;
     let mut ah = ActionHandler::new();
 

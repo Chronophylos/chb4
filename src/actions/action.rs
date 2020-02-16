@@ -2,24 +2,24 @@ use regex::Regex;
 use std::sync::Arc;
 use twitchchat::messages::Privmsg;
 
-pub struct Action {
-    name: String,
+pub struct Action<'a> {
+    name: &'a str,
     regex: Regex,
     whitelisted: bool,
-    command: fn(&Arc<Privmsg<'_>>) -> ActionResult,
+    command: fn(&Arc<Privmsg<'_>>) -> ActionResult<'a>,
 }
 
-impl Action {
+impl<'a> Action<'a> {
     pub fn execute(&self, msg: &Arc<Privmsg<'_>>) -> ActionResult {
         (self.command)(msg)
     }
 
-    pub fn with_name(name: String) -> ActionBuilder {
+    pub fn with_name(name: &'a str) -> ActionBuilder<'a> {
         ActionBuilder::with_name(name)
     }
 
-    pub fn name(&self) -> String {
-        self.name.clone()
+    pub fn name(&self) -> &'a str {
+        self.name
     }
 
     pub fn regex(&self) -> regex::Regex {
@@ -32,20 +32,20 @@ impl Action {
 }
 
 #[allow(dead_code)]
-pub enum ActionResult {
-    Message(String),
+pub enum ActionResult<'a> {
+    Message(&'a str),
     NoMessage,
-    Error(String),
+    Error(&'a str),
 }
 
-pub struct ActionBuilder {
-    name: String,
+pub struct ActionBuilder<'a> {
+    name: &'a str,
     regex: Regex,
     whitelisted: bool,
-    command: fn(&Arc<Privmsg<'_>>) -> ActionResult,
+    command: fn(&Arc<Privmsg<'_>>) -> ActionResult<'a>,
 }
-impl Into<Action> for ActionBuilder {
-    fn into(self) -> Action {
+impl<'a> Into<Action<'a>> for ActionBuilder<'a> {
+    fn into(self) -> Action<'a> {
         Action {
             name: self.name,
             regex: Regex::new("").unwrap(),
@@ -56,25 +56,28 @@ impl Into<Action> for ActionBuilder {
 }
 
 /// Builder functions
-impl ActionBuilder {
+impl<'a> ActionBuilder<'a> {
     pub fn new() -> Self {
         Self {
-            name: String::from("<No Name>"),
+            name: "<No Name>",
             regex: Regex::new("").unwrap(),
             whitelisted: false,
             command: noop,
         }
     }
 
-    pub fn with_name(name: String) -> Self {
+    pub fn with_name(name: &'a str) -> Self {
         Self {
             name,
             ..Self::new()
         }
     }
 
-    pub fn regex(mut self, regex: Regex) -> Self {
-        self.regex = regex;
+    pub fn regex(mut self, regex: &str) -> Self {
+        self.regex = Regex::new(regex).expect(&format!(
+            "Could not parse regex ({}) when building action {}",
+            regex, self.name,
+        ));
         self
     }
 
@@ -84,16 +87,16 @@ impl ActionBuilder {
         self
     }
 
-    pub fn command(mut self, f: fn(&Arc<Privmsg<'_>>) -> ActionResult) -> Self {
+    pub fn command(mut self, f: fn(&Arc<Privmsg<'_>>) -> ActionResult<'a>) -> Self {
         self.command = f;
         self
     }
 
-    pub fn done(self) -> Action {
+    pub fn done(self) -> Action<'a> {
         Action { ..self.into() }
     }
 }
 
-fn noop(_msg: &Arc<Privmsg<'_>>) -> ActionResult {
+fn noop<'a>(_msg: &Arc<Privmsg<'_>>) -> ActionResult<'a> {
     unimplemented!()
 }
