@@ -1,23 +1,23 @@
-pub struct Command {
-    name: String,
-    aliases: Vec<String>,
+pub struct Command<'a> {
+    name: &'a str,
+    aliases: Vec<&'a str>,
     #[allow(dead_code)]
     chainable: bool,
     whitelisted: bool,
     command: fn(Vec<&str>) -> CommandResult,
 }
 
-impl Command {
+impl<'a> Command<'a> {
     pub fn execute(&self, args: Vec<&str>) -> CommandResult {
         trace!("Executing command {} with args {:?}", self.name, args);
         (self.command)(args)
     }
 
     pub fn name(&self) -> String {
-        self.name.clone()
+        self.name.to_string()
     }
 
-    pub fn aliases(&self) -> Vec<String> {
+    pub fn aliases(&self) -> Vec<&str> {
         self.aliases.clone()
     }
 
@@ -32,22 +32,22 @@ impl Command {
 }
 
 /// Shadow constructors for `CommandBuilder`
-impl Command {
-    pub fn with_name(name: String) -> CommandBuilder {
+impl<'a> Command<'a> {
+    pub fn with_name(name: &'a str) -> CommandBuilder<'a> {
         CommandBuilder::with_name(name)
     }
 }
 
-pub struct CommandBuilder {
-    name: String,
-    aliases: Vec<String>,
+pub struct CommandBuilder<'a> {
+    name: &'a str,
+    aliases: Vec<&'a str>,
     chainable: bool,
     whitelisted: bool,
     command: fn(Vec<&str>) -> CommandResult,
 }
 
-impl Into<Command> for CommandBuilder {
-    fn into(self) -> Command {
+impl<'a> Into<Command<'a>> for CommandBuilder<'a> {
+    fn into(self) -> Command<'a> {
         Command {
             name: self.name,
             aliases: self.aliases,
@@ -60,10 +60,10 @@ impl Into<Command> for CommandBuilder {
 
 #[allow(dead_code)]
 /// Builder functions
-impl CommandBuilder {
+impl<'a> CommandBuilder<'a> {
     pub fn new() -> Self {
         Self {
-            name: String::from("<No Name>"),
+            name: "<No Name>",
             aliases: vec![],
             chainable: false,
             whitelisted: false,
@@ -71,7 +71,7 @@ impl CommandBuilder {
         }
     }
 
-    pub fn with_name(name: String) -> Self {
+    pub fn with_name(name: &'a str) -> Self {
         Self {
             name,
             ..Self::new()
@@ -83,7 +83,7 @@ impl CommandBuilder {
         self
     }
 
-    pub fn aliases(mut self, a: Vec<String>) -> Self {
+    pub fn aliases(mut self, a: Vec<&'a str>) -> Self {
         self.aliases = a;
         self
     }
@@ -98,7 +98,7 @@ impl CommandBuilder {
         self
     }
 
-    pub fn done(self) -> Command {
+    pub fn done(self) -> Command<'a> {
         Command { ..self.into() }
     }
 }

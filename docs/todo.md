@@ -2,6 +2,7 @@
 - [ ] Add Database
 - [ ] Add Command System
     - [ ] Migrate Commands
+    - [ ] Add Command for https://www.babelstone.co.uk/Unicode/whatisit.html
 - [ ] Add Action System
     - [ ] Migrate Actions
         - [ ] Add Voicemail Action

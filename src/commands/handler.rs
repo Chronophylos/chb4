@@ -2,15 +2,15 @@
 use super::command::{Command, CommandResult};
 use std::collections::HashMap;
 
-pub struct CommandHandler {
-    commands: HashMap<String, Command>,
+pub struct CommandHandler<'a> {
+    commands: HashMap<String, Command<'a>>,
     // translate aliases to command names
     aliases: HashMap<String, String>,
     /// The prefix to use when checking for commands in a message.
     prefix: char,
 }
 
-impl CommandHandler {
+impl<'a> CommandHandler<'a> {
     /// Create a new CommandHandler
     pub fn new() -> Self {
         Self {
@@ -22,7 +22,7 @@ impl CommandHandler {
 
     /// Add `command` to the CommandHandler by saving it in `commands` with `name` as key.
     /// Save all of it's aliases in `aliases` with `name` as value and the respective alias as key.
-    fn add_command(&mut self, command: Command) {
+    fn add_command(&mut self, command: Command<'a>) {
         // insert aliases into alias map
         for alias in command.aliases() {
             self.aliases.insert(alias.to_owned(), command.name());
@@ -84,7 +84,7 @@ impl CommandHandler {
     }
 }
 
-pub fn new() -> CommandHandler {
+pub fn new<'a>() -> CommandHandler<'a> {
     use super::befehle;
     let mut ch = CommandHandler::new();
 
