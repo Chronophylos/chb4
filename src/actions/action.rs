@@ -48,6 +48,7 @@ impl<'a> Into<Action<'a>> for ActionBuilder<'a> {
     fn into(self) -> Action<'a> {
         Action {
             name: self.name,
+            #[allow(clippy::trivial_regex)]
             regex: Regex::new("").unwrap(),
             whitelisted: self.whitelisted,
             command: self.command,
@@ -60,6 +61,7 @@ impl<'a> ActionBuilder<'a> {
     pub fn new() -> Self {
         Self {
             name: "<No Name>",
+            #[allow(clippy::trivial_regex)]
             regex: Regex::new("").unwrap(),
             whitelisted: false,
             command: noop,
