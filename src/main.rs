@@ -148,7 +148,7 @@ async fn main() {
             // get writer from cloned client so we dont move the original
             let writer = bot_client.writer();
             while let Some(msg) = bot.next().await {
-                actions.handle_privmsg(&msg, &mut writer.clone());
+                actions.handle_privmsg(&msg, &mut writer.clone()).await;
                 commands.handle_privmsg(&msg, &mut writer.clone()).await;
             }
         });

@@ -31,6 +31,7 @@ impl Action {
     }
 }
 
+#[allow(dead_code)]
 pub enum ActionResult {
     Message(String),
     NoMessage,
@@ -77,6 +78,7 @@ impl ActionBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub fn whitelisted(mut self) -> Self {
         self.whitelisted = true;
         self
