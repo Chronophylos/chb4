@@ -89,6 +89,9 @@ async fn main() {
     // subscribe to an event stream
 
     {
+        // clone nick so we can use it here
+        let nick = nick.clone();
+
         // for privmsg (what users send to channels)
         let mut privmsg = client.dispatcher().await.subscribe::<events::Privmsg>();
 
@@ -99,6 +102,12 @@ async fn main() {
         tokio::task::spawn(async move {
             while let Some(msg) = privmsg.next().await {
                 trace!("Got PRIVMSG message");
+
+                if msg.name == nick {
+                    // message must be sent by the bot -> ignore it
+                    trace!("dropping PRIVMSG since it was sent by the bot");
+                    break;
+                }
 
                 {
                     let tags: &twitchchat::Tags = &msg.tags;
