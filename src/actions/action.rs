@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::fmt;
 use std::sync::Arc;
 use twitchchat::messages::Privmsg;
 
@@ -28,6 +29,16 @@ impl<'a> Action<'a> {
 
     pub fn whitelisted(&self) -> bool {
         self.whitelisted
+    }
+}
+
+impl fmt::Debug for Action<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Action")
+            .field("name", &self.name)
+            .field("regex", &self.regex)
+            .field("whitelisted", &self.whitelisted)
+            .finish()
     }
 }
 
