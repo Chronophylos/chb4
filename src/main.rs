@@ -92,23 +92,35 @@ async fn main() {
         // for privmsg (what users send to channels)
         let mut privmsg = client.dispatcher().await.subscribe::<events::Privmsg>();
 
+        // we can move the client to another task by cloning it
+        let bot_client = client.clone();
+
         // spawn a task to consume the stream
         tokio::task::spawn(async move {
             while let Some(msg) = privmsg.next().await {
                 trace!("Got PRIVMSG message");
 
-                let tags: &twitchchat::Tags = &msg.tags;
-                let user_id: String = tags.get_parsed("user-id").unwrap();
-                let name = msg.name.to_owned();
-                let display_name: String = tags.get_parsed("display-name").unwrap();
+                {
+                    let tags: &twitchchat::Tags = &msg.tags;
+                    let user_id: String = tags.get_parsed("user-id").unwrap();
+                    let name = msg.name.to_owned();
+                    let display_name: String = tags.get_parsed("display-name").unwrap();
 
-                db::bump_user(
-                    &db,
-                    &user_id,
-                    &name,
-                    &display_name,
-                    &Local::now().naive_local(),
-                );
+                    db::bump_user(
+                        &db,
+                        &user_id,
+                        &name,
+                        &display_name,
+                        &Local::now().naive_local(),
+                    );
+                }
+
+                {
+                    let writer = bot_client.writer();
+
+                    actions.handle_privmsg(&msg, &mut writer.clone()).await;
+                    commands.handle_privmsg(&msg, &mut writer.clone()).await;
+                }
             }
         });
     }
@@ -134,22 +146,6 @@ async fn main() {
                     }
                     break; // returning/dropping the stream un-subscribes it
                 }
-            }
-        });
-    }
-
-    // for privmsg again
-    {
-        let mut bot = client.dispatcher().await.subscribe::<events::Privmsg>();
-
-        // we can move the client to another task by cloning it
-        let bot_client = client.clone();
-        tokio::task::spawn(async move {
-            // get writer from cloned client so we dont move the original
-            let writer = bot_client.writer();
-            while let Some(msg) = bot.next().await {
-                actions.handle_privmsg(&msg, &mut writer.clone()).await;
-                commands.handle_privmsg(&msg, &mut writer.clone()).await;
             }
         });
     }
