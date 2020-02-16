@@ -23,8 +23,8 @@ impl<'a> Action<'a> {
         self.name
     }
 
-    pub fn regex(&self) -> regex::Regex {
-        self.regex.clone()
+    pub fn is_match(&self, text: &str) -> bool {
+        self.regex.is_match(text)
     }
 
     pub fn whitelisted(&self) -> bool {

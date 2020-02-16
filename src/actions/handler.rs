@@ -24,12 +24,10 @@ impl<'a> ActionHandler<'a> {
     ) {
         let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
 
-        let actions = self
-            .actions
-            .iter()
-            .filter(|&act| act.regex().is_match(&message));
+        let actions = self.actions.iter().filter(|&act| act.is_match(&message));
+
         for action in actions {
-            debug!("Found matching action {}", action.name());
+            debug!("Found matching action {:?}", action);
 
             if !action.whitelisted() {
                 // or the command is enabled in this channel
