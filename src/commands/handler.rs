@@ -55,14 +55,14 @@ impl CommandHandler {
         }
 
         let args = &words[1..];
-        debug!("Command: {} Args: {:?}", command_name, args);
+        trace!("Command: {} Args: {:?}", command_name, args);
 
         match self.get_command(command_name) {
             Some(cmd) => {
                 debug!("Found matching command {}", cmd.name());
                 if !cmd.whitelisted() {
                     // or the command is enabled in this channel
-                    debug!("Executing command");
+                    trace!("Executing command");
                     match cmd.execute(args.to_vec()) {
                         CommandResult::Message(m) => {
                             writer

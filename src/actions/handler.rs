@@ -22,9 +22,7 @@ impl ActionHandler {
         msg: &std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
         writer: &mut twitchchat::client::Writer,
     ) {
-        let message = msg.data.to_string();
-
-        debug!("Message: {}", message);
+        let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
 
         let actions = self
             .actions
@@ -33,10 +31,14 @@ impl ActionHandler {
         for action in actions {
             debug!("Found matching action {}", action.name());
 
-            if action.whitelisted() {
-                debug!("Executing action");
+            if !action.whitelisted() {
+                // or the command is enabled in this channel
+                trace!("Executing action");
                 match action.execute(msg) {
-                    ActionResult::Message(m) => writer.privmsg(&msg.channel, &m).await.unwrap(),
+                    ActionResult::Message(m) => writer
+                        .privmsg(&msg.channel, &m)
+                        .await
+                        .expect("Could not write to channel"),
                     ActionResult::NoMessage => {}
                     ActionResult::Error(e) => {
                         error!("Could not execute action ({}): {}", action.name(), e)
