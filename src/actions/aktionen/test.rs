@@ -1,17 +1,16 @@
-use super::super::action::Action;
+use super::super::action::{Action, ActionResult};
 use rand::prelude::*;
 use regex::Regex;
 
 pub fn action() -> Action {
     Action::with_name(String::from("test"))
         .regex(Regex::new(r"^test").unwrap())
-        .command(|msg, writer| {
+        .command(|_| {
             let successful: bool = random();
-            let message = match successful {
-                true => "Test successful ppHop",
-                false => "Test unsuccessful FeelsBadMan",
-            };
-            writer.privmsg(&msg.channel, message);
+            match successful {
+                true => ActionResult::Message(String::from("Test successful ppHop")),
+                false => ActionResult::Message(String::from("Test unsuccessful FeelsBadMan")),
+            }
         })
         .done()
 }

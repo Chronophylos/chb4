@@ -1,17 +1,17 @@
 use regex::Regex;
 use std::sync::Arc;
-use twitchchat::{client::Writer, messages::Privmsg};
+use twitchchat::messages::Privmsg;
 
 pub struct Action {
     name: String,
     regex: Regex,
     whitelisted: bool,
-    command: fn(&Arc<Privmsg<'_>>, &mut Writer),
+    command: fn(&Arc<Privmsg<'_>>) -> ActionResult,
 }
 
 impl Action {
-    pub fn execute(&self, msg: &Arc<Privmsg<'_>>, writer: &mut Writer) {
-        (self.command)(msg, writer)
+    pub fn execute(&self, msg: &Arc<Privmsg<'_>>) -> ActionResult {
+        (self.command)(msg)
     }
 
     pub fn with_name(name: String) -> ActionBuilder {
@@ -31,11 +31,17 @@ impl Action {
     }
 }
 
+pub enum ActionResult {
+    Message(String),
+    NoMessage,
+    Error(String),
+}
+
 pub struct ActionBuilder {
     name: String,
     regex: Regex,
     whitelisted: bool,
-    command: fn(&Arc<Privmsg<'_>>, &mut Writer),
+    command: fn(&Arc<Privmsg<'_>>) -> ActionResult,
 }
 impl Into<Action> for ActionBuilder {
     fn into(self) -> Action {
@@ -76,7 +82,7 @@ impl ActionBuilder {
         self
     }
 
-    pub fn command(mut self, f: fn(&Arc<Privmsg<'_>>, &mut Writer)) -> Self {
+    pub fn command(mut self, f: fn(&Arc<Privmsg<'_>>) -> ActionResult) -> Self {
         self.command = f;
         self
     }
@@ -86,6 +92,6 @@ impl ActionBuilder {
     }
 }
 
-fn noop(_msg: &Arc<Privmsg<'_>>, _writer: &mut Writer) {
+fn noop(_msg: &Arc<Privmsg<'_>>) -> ActionResult {
     unimplemented!()
 }

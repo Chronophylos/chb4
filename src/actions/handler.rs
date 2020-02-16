@@ -1,4 +1,4 @@
-use super::action::Action;
+use super::action::{Action, ActionResult};
 
 pub struct ActionHandler {
     actions: Vec<Action>,
@@ -17,7 +17,7 @@ impl ActionHandler {
     }
 
     /// Handle a privmsg
-    pub fn handle_privmsg(
+    pub async fn handle_privmsg(
         &self,
         msg: &std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
         writer: &mut twitchchat::client::Writer,
@@ -35,7 +35,13 @@ impl ActionHandler {
 
             if action.whitelisted() {
                 debug!("Executing action");
-                action.execute(msg, writer);
+                match action.execute(msg) {
+                    ActionResult::Message(m) => writer.privmsg(&msg.channel, &m).await.unwrap(),
+                    ActionResult::NoMessage => {}
+                    ActionResult::Error(e) => {
+                        error!("Could not execute action ({}): {}", action.name(), e)
+                    }
+                }
             }
         }
     }
