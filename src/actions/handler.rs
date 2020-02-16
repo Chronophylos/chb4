@@ -12,7 +12,7 @@ impl<'a> ActionHandler<'a> {
         }
     }
 
-    fn add_action(&mut self, action: Action<'a>) {
+    fn add(&mut self, action: Action<'a>) {
         self.actions.push(action);
     }
 
@@ -51,7 +51,7 @@ pub fn new<'a>() -> ActionHandler<'a> {
     use super::aktionen;
     let mut ah = ActionHandler::new();
 
-    ah.add_action(aktionen::test());
+    ah.add(aktionen::test(bot));
 
     ah
 }

@@ -6,6 +6,7 @@ pub struct CommandHandler<'a> {
     commands: HashMap<String, Command<'a>>,
     // translate aliases to command names
     aliases: HashMap<String, String>,
+
     /// The prefix to use when checking for commands in a message.
     prefix: char,
 }
@@ -22,7 +23,7 @@ impl<'a> CommandHandler<'a> {
 
     /// Add `command` to the CommandHandler by saving it in `commands` with `name` as key.
     /// Save all of it's aliases in `aliases` with `name` as value and the respective alias as key.
-    fn add_command(&mut self, command: Command<'a>) {
+    fn add(&mut self, command: Command<'a>) {
         // insert aliases into alias map
         for alias in command.aliases() {
             self.aliases.insert(alias.to_owned(), command.name());
@@ -33,7 +34,7 @@ impl<'a> CommandHandler<'a> {
     }
 
     /// Get a command by `name`. This can either be the command name or any of it's aliases.
-    fn get_command(&self, name: String) -> Option<&Command> {
+    fn command(&self, name: String) -> Option<&Command> {
         let name = self.aliases.get(&name).unwrap_or(&name);
         self.commands.get(name)
     }
@@ -57,7 +58,7 @@ impl<'a> CommandHandler<'a> {
         let args = &words[1..];
         trace!("Command: {} Args: {:?}", command_name, args);
 
-        match self.get_command(command_name) {
+        match self.command(command_name) {
             Some(cmd) => {
                 debug!("Found matching command {}", cmd.name());
                 if !cmd.whitelisted() {
@@ -88,7 +89,7 @@ pub fn new<'a>() -> CommandHandler<'a> {
     use super::befehle;
     let mut ch = CommandHandler::new();
 
-    ch.add_command(befehle::test());
+    ch.add(befehle::test(bot));
 
     ch
 }
