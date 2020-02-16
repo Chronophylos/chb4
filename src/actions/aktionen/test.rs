@@ -6,9 +6,10 @@ pub fn action<'a>() -> Action<'a> {
         .regex(r"^test")
         .command(|_| {
             let successful: bool = random();
-            match successful {
-                true => ActionResult::Message("Test successful ppHop"),
-                false => ActionResult::Message("Test unsuccessful FeelsBadMan"),
+            if successful {
+                ActionResult::Message("Test successful ppHop")
+            } else {
+                ActionResult::Message("Test unsuccessful FeelsBadMan")
             }
         })
         .done()

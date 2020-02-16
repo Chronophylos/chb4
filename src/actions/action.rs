@@ -76,10 +76,12 @@ impl<'a> ActionBuilder<'a> {
     }
 
     pub fn regex(mut self, regex: &str) -> Self {
-        self.regex = Regex::new(regex).expect(&format!(
-            "Could not parse regex ({}) when building action {}",
-            regex, self.name,
-        ));
+        self.regex = Regex::new(regex).unwrap_or_else(|_| {
+            panic!(
+                "Could not parse regex ({}) when building action {}",
+                regex, self.name,
+            )
+        });
         self
     }
 
