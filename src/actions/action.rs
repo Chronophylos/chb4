@@ -59,8 +59,7 @@ impl<'a> Into<Action<'a>> for ActionBuilder<'a> {
     fn into(self) -> Action<'a> {
         Action {
             name: self.name,
-            #[allow(clippy::trivial_regex)]
-            regex: Regex::new("").unwrap(),
+            regex: self.regex,
             whitelisted: self.whitelisted,
             command: self.command,
         }
