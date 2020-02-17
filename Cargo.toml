@@ -4,14 +4,17 @@ version = "0.1.0"
 authors = ["Chronophylos <nikolai@chronophylos.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+opt-level = 'z'  # Optimize for size.
+lto = true
+panic = 'abort' # abort on panic instead of unwinding
 
 [dependencies]
 twitchchat        = "0.8"
 log               = "0.4"
 yansi             = "0.5"
 flexi_logger      = "0.14"
-config            = "0.10"
+config            = { version = "0.10", default-features = false, feautures = ["toml"] }
 tokio             = { version = "0.2", default-features = false, features = ["macros"] }
 diesel            = { version = "1.0", default-features = false, features = ["mysql", "chrono"] }
 diesel_migrations = "1.4"
