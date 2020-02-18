@@ -4,6 +4,7 @@
 use crate::models::{BumpUser, NewUser};
 use chrono::prelude::*;
 use diesel::prelude::*;
+use diesel::MysqlConnection;
 
 pub fn create_user<'a>(
     conn: &MysqlConnection,

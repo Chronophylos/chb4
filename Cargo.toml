@@ -13,7 +13,7 @@ yansi             = "0.5"
 flexi_logger      = "0.14"
 config            = "0.10"
 tokio             = { version = "0.2", default-features = false, features = ["macros"] }
-diesel            = { version = "1.0", default-features = false, features = ["mysql", "chrono"] }
+diesel            = { version = "1.0", default-features = false, features = ["mysql", "chrono", "r2d2"] }
 diesel_migrations = "1.4"
 chrono            = "0.4"
 regex             = "1"

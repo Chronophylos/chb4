@@ -1,6 +1,8 @@
 //! Everything needed to handle and create commands
+use super::super::context::Context;
 use super::command::{Command, CommandResult};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 pub struct CommandHandler<'a> {
     commands: HashMap<String, Command<'a>>,
@@ -9,12 +11,16 @@ pub struct CommandHandler<'a> {
 
     /// The prefix to use when checking for commands in a message.
     prefix: char,
+
+    #[allow(dead_code)]
+    context: Arc<Context>,
 }
 
 impl<'a> CommandHandler<'a> {
     /// Create a new CommandHandler
-    pub fn new() -> Self {
+    pub fn new(context: Arc<Context>) -> Self {
         Self {
+            context,
             commands: HashMap::new(),
             aliases: HashMap::new(),
             prefix: '§',
@@ -42,7 +48,7 @@ impl<'a> CommandHandler<'a> {
     /// Handle a privmsg
     pub async fn handle_privmsg(
         &self,
-        msg: &std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
+        msg: Arc<twitchchat::messages::Privmsg<'_>>,
         writer: &mut twitchchat::client::Writer,
     ) {
         let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
@@ -63,6 +69,7 @@ impl<'a> CommandHandler<'a> {
                 debug!("Found matching command {}", cmd.name());
                 if !cmd.whitelisted() {
                     // or the command is enabled in this channel
+
                     trace!("Executing command");
                     match cmd.execute(args.to_vec()) {
                         CommandResult::Message(m) => {
@@ -85,11 +92,11 @@ impl<'a> CommandHandler<'a> {
     }
 }
 
-pub fn new<'a>() -> CommandHandler<'a> {
+pub fn new<'a>(context: Arc<Context>) -> CommandHandler<'a> {
     use super::befehle;
-    let mut ch = CommandHandler::new();
+    let mut ch = CommandHandler::new(context);
 
-    ch.add(befehle::test(bot));
+    ch.add(befehle::test());
 
     ch
 }

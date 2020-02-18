@@ -7,11 +7,11 @@ pub struct Action<'a> {
     name: &'a str,
     regex: Regex,
     whitelisted: bool,
-    command: fn(&Arc<Privmsg<'_>>) -> ActionResult<'a>,
+    command: fn(Arc<Privmsg<'_>>) -> ActionResult<'a>,
 }
 
 impl<'a> Action<'a> {
-    pub fn execute(&self, msg: &Arc<Privmsg<'_>>) -> ActionResult {
+    pub fn execute(&self, msg: Arc<Privmsg<'_>>) -> ActionResult {
         (self.command)(msg)
     }
 
@@ -53,7 +53,7 @@ pub struct ActionBuilder<'a> {
     name: &'a str,
     regex: Regex,
     whitelisted: bool,
-    command: fn(&Arc<Privmsg<'_>>) -> ActionResult<'a>,
+    command: fn(Arc<Privmsg<'_>>) -> ActionResult<'a>,
 }
 impl<'a> Into<Action<'a>> for ActionBuilder<'a> {
     fn into(self) -> Action<'a> {
@@ -101,7 +101,7 @@ impl<'a> ActionBuilder<'a> {
         self
     }
 
-    pub fn command(mut self, f: fn(&Arc<Privmsg<'_>>) -> ActionResult<'a>) -> Self {
+    pub fn command(mut self, f: fn(Arc<Privmsg<'_>>) -> ActionResult<'a>) -> Self {
         self.command = f;
         self
     }
@@ -111,6 +111,6 @@ impl<'a> ActionBuilder<'a> {
     }
 }
 
-fn noop<'a>(_msg: &Arc<Privmsg<'_>>) -> ActionResult<'a> {
+fn noop<'a>(_msg: Arc<Privmsg<'_>>) -> ActionResult<'a> {
     unimplemented!()
 }

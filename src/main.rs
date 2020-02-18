@@ -9,18 +9,22 @@ extern crate regex;
 
 mod actions;
 mod commands;
-mod db;
+mod context;
+mod database;
 mod log_format;
 mod models;
 mod schema;
 
 use chrono::prelude::*;
-use diesel::mysql::MysqlConnection;
-use diesel::prelude::*;
+use context::Context;
+use diesel::MysqlConnection;
 use twitchchat::{client::Error, client::Status, events, Client, Secure};
 // so .next() can be used on the EventStream
 // futures::stream::StreamExt will also work
+use config::{Config, Environment, File, FileFormat};
+use diesel::r2d2;
 use std::env;
+use std::sync::Arc;
 use tokio::stream::StreamExt as _;
 
 /// The main is currently full of bloat. The plan is to move everything into their own module
@@ -37,39 +41,43 @@ async fn main() {
 
     info!("Starting CHB4 {} ({})", version, git_hash);
 
-    let mut settings = config::Config::new();
-    settings
+    let mut config = Config::new();
+    config
         .merge(
             // look for config in system config directory
-            config::File::with_name("/etc/chb4/config")
-                .format(config::FileFormat::Toml)
+            File::with_name("/etc/chb4/config")
+                .format(FileFormat::Toml)
                 .required(false),
         )
         .unwrap_or_else(|e| panic!("Loading config from /etc/chb4 failed with {}", e))
         .merge(
             // look for config in working directory
-            config::File::with_name("config")
-                .format(config::FileFormat::Toml)
+            File::with_name("config")
+                .format(FileFormat::Toml)
                 .required(false),
         )
         .unwrap_or_else(|e| panic!("Loading config from current directory failed with {}", e))
         // look for config in environment
-        .merge(config::Environment::with_prefix("CHB4").separator("_"))
+        .merge(Environment::with_prefix("CHB4").separator("_"))
         .unwrap_or_else(|e| panic!("Loading config from env failed with {}", e));
     info!("Loaded config");
 
-    let actions = actions::handler::new();
+    let manager =
+        r2d2::ConnectionManager::<MysqlConnection>::new(config.get_str("database.url").unwrap());
+    let pool = r2d2::Pool::builder().build(manager).unwrap();
+    info!("Created Database Pool");
+
+    let context = Arc::new(Context::new(config, pool));
+
+    let actions = actions::handler::new(context.clone());
     info!("Created Action Handler");
 
-    let commands = commands::handler::new();
+    let commands = commands::handler::new(context.clone());
 
     info!("Created Command Handler");
 
-    let db = connect_to_db(&settings);
-    info!("Connected to Database");
-
-    let nick = settings.get_str("twitch.nick").unwrap();
-    let pass = settings.get_str("twitch.pass").unwrap();
+    let nick = context.config().get_str("twitch.nick").unwrap();
+    let pass = context.config().get_str("twitch.pass").unwrap();
     let channel = nick.clone();
 
     // connect via (tls or normal, 'Secure' determines that) tcp with this nick and password
@@ -97,6 +105,7 @@ async fn main() {
 
         // we can move the client to another task by cloning it
         let bot_client = client.clone();
+        let context = context.clone();
 
         // spawn a task to consume the stream
         tokio::task::spawn(async move {
@@ -115,8 +124,8 @@ async fn main() {
                     let name = msg.name.to_owned();
                     let display_name: String = tags.get_parsed("display-name").unwrap();
 
-                    db::bump_user(
-                        &db,
+                    database::bump_user(
+                        &context.pool().get().unwrap(),
                         &user_id,
                         &name,
                         &display_name,
@@ -127,8 +136,12 @@ async fn main() {
                 {
                     let writer = bot_client.writer();
 
-                    actions.handle_privmsg(&msg, &mut writer.clone()).await;
-                    commands.handle_privmsg(&msg, &mut writer.clone()).await;
+                    actions
+                        .handle_privmsg(msg.clone(), &mut writer.clone())
+                        .await;
+                    commands
+                        .handle_privmsg(msg.clone(), &mut writer.clone())
+                        .await;
                 }
             }
         });
@@ -196,15 +209,4 @@ async fn main() {
     // another way would be to clear all subscriptions
     // clearing the subscriptions would close each event stream
     client.dispatcher().await.clear_subscriptions_all();
-}
-
-fn connect_to_db(s: &config::Config) -> MysqlConnection {
-    let database_url = s.get_str("database.url").unwrap();
-
-    MysqlConnection::establish(&database_url).unwrap_or_else(|e| {
-        panic!(
-            "Connecting to database at {} failed with: {}",
-            database_url, e
-        )
-    })
 }

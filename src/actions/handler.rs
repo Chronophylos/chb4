@@ -1,13 +1,18 @@
+use super::super::context::Context;
 use super::action::{Action, ActionResult};
+use std::sync::Arc;
 
 pub struct ActionHandler<'a> {
     actions: Vec<Action<'a>>,
+    #[allow(dead_code)]
+    context: Arc<Context>,
 }
 
 impl<'a> ActionHandler<'a> {
     /// Create a new ActionHandler
-    pub fn new() -> Self {
+    pub fn new(context: Arc<Context>) -> Self {
         Self {
+            context,
             actions: Vec::new(),
         }
     }
@@ -19,7 +24,7 @@ impl<'a> ActionHandler<'a> {
     /// Handle a privmsg
     pub async fn handle_privmsg(
         &self,
-        msg: &std::sync::Arc<twitchchat::messages::Privmsg<'_>>,
+        msg: Arc<twitchchat::messages::Privmsg<'_>>,
         writer: &mut twitchchat::client::Writer,
     ) {
         let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
@@ -32,7 +37,7 @@ impl<'a> ActionHandler<'a> {
             if !action.whitelisted() {
                 // or the command is enabled in this channel
                 trace!("Executing action");
-                match action.execute(msg) {
+                match action.execute(msg.clone()) {
                     ActionResult::Message(m) => writer
                         .privmsg(&msg.channel, &m)
                         .await
@@ -47,11 +52,11 @@ impl<'a> ActionHandler<'a> {
     }
 }
 
-pub fn new<'a>() -> ActionHandler<'a> {
+pub fn new<'a>(context: Arc<Context>) -> ActionHandler<'a> {
     use super::aktionen;
-    let mut ah = ActionHandler::new();
+    let mut ah = ActionHandler::new(context);
 
-    ah.add(aktionen::test(bot));
+    ah.add(aktionen::test());
 
     ah
 }
