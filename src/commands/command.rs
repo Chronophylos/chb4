@@ -1,23 +1,26 @@
-pub struct Command<'a> {
-    name: &'a str,
-    aliases: Vec<&'a str>,
+use std::sync::Arc;
+use twitchchat::messages::Privmsg;
+
+pub struct Command {
+    name: String,
+    aliases: Vec<String>,
     #[allow(dead_code)]
     chainable: bool,
     whitelisted: bool,
-    command: fn(Vec<&str>) -> CommandResult,
+    command: fn(Vec<&str>, Arc<Privmsg<'_>>) -> CommandResult,
 }
 
-impl<'a> Command<'a> {
-    pub fn execute(&self, args: Vec<&str>) -> CommandResult {
+impl Command {
+    pub fn execute(&self, args: Vec<&str>, msg: Arc<Privmsg<'_>>) -> CommandResult {
         trace!("Executing command {} with args {:?}", self.name, args);
-        (self.command)(args)
+        (self.command)(args, msg)
     }
 
     pub fn name(&self) -> String {
-        self.name.to_string()
+        self.name
     }
 
-    pub fn aliases(&self) -> Vec<&str> {
+    pub fn aliases(&self) -> Vec<String> {
         self.aliases.clone()
     }
 
@@ -32,22 +35,22 @@ impl<'a> Command<'a> {
 }
 
 /// Shadow constructors for `CommandBuilder`
-impl<'a> Command<'a> {
-    pub fn with_name(name: &'a str) -> CommandBuilder<'a> {
+impl Command {
+    pub fn with_name<S: Into<String>>(name: S) -> CommandBuilder {
         CommandBuilder::with_name(name)
     }
 }
 
-pub struct CommandBuilder<'a> {
-    name: &'a str,
-    aliases: Vec<&'a str>,
+pub struct CommandBuilder {
+    name: String,
+    aliases: Vec<String>,
     chainable: bool,
     whitelisted: bool,
-    command: fn(Vec<&str>) -> CommandResult,
+    command: fn(Vec<&str>, Arc<Privmsg<'_>>) -> CommandResult,
 }
 
-impl<'a> Into<Command<'a>> for CommandBuilder<'a> {
-    fn into(self) -> Command<'a> {
+impl Into<Command> for CommandBuilder {
+    fn into(self) -> Command {
         Command {
             name: self.name,
             aliases: self.aliases,
@@ -60,10 +63,10 @@ impl<'a> Into<Command<'a>> for CommandBuilder<'a> {
 
 #[allow(dead_code)]
 /// Builder functions
-impl<'a> CommandBuilder<'a> {
+impl CommandBuilder {
     pub fn new() -> Self {
         Self {
-            name: "<No Name>",
+            name: String::from("<No Name>"),
             aliases: vec![],
             chainable: false,
             whitelisted: false,
@@ -71,19 +74,19 @@ impl<'a> CommandBuilder<'a> {
         }
     }
 
-    pub fn with_name(name: &'a str) -> Self {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
-            name,
+            name: name.into(),
             ..Self::new()
         }
     }
 
-    pub fn command(mut self, f: fn(Vec<&str>) -> CommandResult) -> Self {
+    pub fn command(mut self, f: fn(Vec<&str>, Arc<Privmsg<'_>>) -> CommandResult) -> Self {
         self.command = f;
         self
     }
 
-    pub fn aliases(mut self, a: Vec<&'a str>) -> Self {
+    pub fn aliases<S: Into<String>>(mut self, a: Vec<S>) -> Self {
         self.aliases = a;
         self
     }
@@ -98,12 +101,12 @@ impl<'a> CommandBuilder<'a> {
         self
     }
 
-    pub fn done(self) -> Command<'a> {
+    pub fn done(self) -> Command {
         Command { ..self.into() }
     }
 }
 
-fn noop(_args: Vec<&str>) -> CommandResult {
+fn noop(_args: Vec<&str>, _msg: Arc<Privmsg<'_>>) -> CommandResult {
     unimplemented!()
 }
 
