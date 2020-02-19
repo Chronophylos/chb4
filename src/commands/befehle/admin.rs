@@ -22,6 +22,7 @@ pub fn command(context: Arc<Context>) -> Command {
             let permission = Permission::from(context.clone(), msg);
 
             if permission != Permission::Owner {
+                debug!("Permission not high enough");
                 return CommandResult::NoMessage;
             }
 
