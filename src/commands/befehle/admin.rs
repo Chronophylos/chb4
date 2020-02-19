@@ -7,7 +7,8 @@ use crate::helpers::Permission;
 
 pub fn command(context: Arc<Context>) -> Command {
     fn stop(_args: Vec<String>) -> CommandResult {
-        CommandResult::Error(String::from("Not implemented"))
+        use std::process;
+        process::exit(0);
     }
     fn leave(_args: Vec<String>) -> CommandResult {
         CommandResult::Error(String::from("Not implemented"))

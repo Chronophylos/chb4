@@ -3,6 +3,7 @@ use crate::context::Context;
 use std::sync::Arc;
 
 mod admin;
+mod color;
 mod test;
 mod voicemail;
 
@@ -11,5 +12,6 @@ pub fn all(context: Arc<Context>) -> Vec<Command> {
         test::command(),
         admin::command(context.clone()),
         //voicemail::command(context.clone()),
+        color::command(),
     ]
 }

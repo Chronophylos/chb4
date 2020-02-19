@@ -155,10 +155,10 @@ async fn main() {
         tokio::task::spawn(async move {
             while let Some(msg) = join.next().await {
                 let mut writer = join_client.writer();
-                trace!("Got JOIN message");
                 // we've joined a channel
+                info!("Joined {}", msg.channel);
+
                 if msg.name == nick {
-                    info!("Joined {}", msg.channel);
                     if let Err(err) = writer
                         .privmsg(&msg.channel, &format!("Connected with version {}", version))
                         .await
@@ -172,22 +172,8 @@ async fn main() {
         });
     }
 
-    info!("Joining channel {}", &channel);
-    // get a clonable writer from the client
-    // join a channel, methods on writer return false if the client is disconnected
-    if let Err(err) = client.writer().join(&channel).await {
-        match err {
-            Error::InvalidChannel(..) => {
-                error!("could not join channel because the name is empty");
-                std::process::exit(1);
-            }
-            _ => {
-                error!("got an error, but I don't know what to do: {}", err);
-                // we'll get an error if we try to write to a disconnected client.
-                // if this happens, you should shutdown your tasks
-            }
-        }
-    }
+    join_channel(client.clone(), &channel).await;
+    join_channel(client.clone(), "furzbart").await;
 
     // await for the client to be done
     match done.await {
@@ -209,4 +195,23 @@ async fn main() {
     // another way would be to clear all subscriptions
     // clearing the subscriptions would close each event stream
     client.dispatcher().await.clear_subscriptions_all();
+}
+
+async fn join_channel(client: Client, channel: &str) {
+    info!("Joining channel {}", &channel);
+    // get a clonable writer from the client
+    // join a channel, methods on writer return false if the client is disconnected
+    if let Err(err) = client.writer().join(&channel).await {
+        match err {
+            Error::InvalidChannel(..) => {
+                error!("could not join channel because the name is empty");
+                std::process::exit(1);
+            }
+            _ => {
+                error!("got an error, but I don't know what to do: {}", err);
+                // we'll get an error if we try to write to a disconnected client.
+                // if this happens, you should shutdown your tasks
+            }
+        }
+    }
 }
