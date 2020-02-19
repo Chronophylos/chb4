@@ -173,7 +173,7 @@ async fn main() {
     }
 
     join_channel(client.clone(), &channel).await;
-    join_channel(client.clone(), "furzbart").await;
+    //join_channel(client.clone(), "furzbart").await;
 
     // await for the client to be done
     match done.await {
