@@ -3,24 +3,18 @@ use std::fmt;
 use std::sync::Arc;
 use twitchchat::messages::Privmsg;
 
-pub struct Action<'a> {
-    name: &'a str,
+pub type ActionFunction = Box<dyn Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static>;
+
+pub struct Action {
+    name: String,
     regex: Regex,
     whitelisted: bool,
-    command: fn(Arc<Privmsg<'_>>) -> ActionResult<'a>,
+    command: ActionFunction,
 }
 
-impl<'a> Action<'a> {
-    pub fn execute(&self, msg: Arc<Privmsg<'_>>) -> ActionResult {
-        (self.command)(msg)
-    }
-
-    pub fn with_name(name: &'a str) -> ActionBuilder<'a> {
-        ActionBuilder::with_name(name)
-    }
-
-    pub fn name(&self) -> &'a str {
-        self.name
+impl Action {
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
     pub fn is_match(&self, text: &str) -> bool {
@@ -30,9 +24,20 @@ impl<'a> Action<'a> {
     pub fn whitelisted(&self) -> bool {
         self.whitelisted
     }
+
+    pub fn execute(&self, msg: Arc<Privmsg<'_>>) -> ActionResult {
+        (self.command)(msg)
+    }
 }
 
-impl fmt::Debug for Action<'_> {
+/// Shadow constructor for `ActionBuilder`
+impl Action {
+    pub fn with_name<S: Into<String>>(name: S) -> ActionBuilder {
+        ActionBuilder::with_name(name)
+    }
+}
+
+impl fmt::Debug for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Action")
             .field("name", &self.name)
@@ -42,21 +47,14 @@ impl fmt::Debug for Action<'_> {
     }
 }
 
-#[allow(dead_code)]
-pub enum ActionResult<'a> {
-    Message(&'a str),
-    NoMessage,
-    Error(&'a str),
-}
-
-pub struct ActionBuilder<'a> {
-    name: &'a str,
+pub struct ActionBuilder {
+    name: String,
     regex: Regex,
     whitelisted: bool,
-    command: fn(Arc<Privmsg<'_>>) -> ActionResult<'a>,
+    command: ActionFunction,
 }
-impl<'a> Into<Action<'a>> for ActionBuilder<'a> {
-    fn into(self) -> Action<'a> {
+impl Into<Action> for ActionBuilder {
+    fn into(self) -> Action {
         Action {
             name: self.name,
             regex: self.regex,
@@ -67,20 +65,20 @@ impl<'a> Into<Action<'a>> for ActionBuilder<'a> {
 }
 
 /// Builder functions
-impl<'a> ActionBuilder<'a> {
+impl ActionBuilder {
     pub fn new() -> Self {
         Self {
-            name: "<No Name>",
+            name: String::from("<No Name>"),
             #[allow(clippy::trivial_regex)]
             regex: Regex::new("").unwrap(),
             whitelisted: false,
-            command: noop,
+            command: Box::new(noop),
         }
     }
 
-    pub fn with_name(name: &'a str) -> Self {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
-            name,
+            name: name.into(),
             ..Self::new()
         }
     }
@@ -101,16 +99,25 @@ impl<'a> ActionBuilder<'a> {
         self
     }
 
-    pub fn command(mut self, f: fn(Arc<Privmsg<'_>>) -> ActionResult<'a>) -> Self {
-        self.command = f;
+    pub fn command(
+        mut self,
+        f: impl Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static,
+    ) -> Self {
+        self.command = Box::new(f);
         self
     }
 
-    pub fn done(self) -> Action<'a> {
+    pub fn done(self) -> Action {
         Action { ..self.into() }
     }
 }
 
-fn noop<'a>(_msg: Arc<Privmsg<'_>>) -> ActionResult<'a> {
-    unimplemented!()
+fn noop(_msg: Arc<Privmsg<'_>>) -> ActionResult {
+    panic!("Missing command when building Action")
+}
+
+pub enum ActionResult {
+    Message(String),
+    NoMessage,
+    Error(String),
 }

@@ -10,6 +10,7 @@ table! {
 table! {
     channels (id) {
         id -> Unsigned<Integer>,
+        twitch_id -> Unsigned<Bigint>,
         owner_id -> Unsigned<Integer>,
         enabled -> Bool,
         paused -> Bool,
@@ -36,7 +37,7 @@ table! {
 }
 
 table! {
-    persons (id) {
+    people (id) {
         id -> Unsigned<Integer>,
         first_name -> Nullable<Varchar>,
         last_name -> Nullable<Varchar>,
@@ -47,7 +48,7 @@ table! {
 table! {
     users (id) {
         id -> Unsigned<Integer>,
-        twitch_id -> Nullable<Varchar>,
+        twitch_id -> Nullable<Unsigned<Bigint>>,
         name -> Varchar,
         display_name -> Nullable<Varchar>,
         first_seen -> Nullable<Datetime>,
@@ -83,7 +84,7 @@ joinable!(channel_action_filters -> channels (channel_id));
 joinable!(channels -> users (owner_id));
 joinable!(copypastas -> users (creator_id));
 joinable!(user_settings -> users (user_id));
-joinable!(users -> persons (person_id));
+joinable!(users -> people (person_id));
 joinable!(voicemails -> channels (channel_id));
 
 allow_tables_to_appear_in_same_query!(
@@ -91,7 +92,7 @@ allow_tables_to_appear_in_same_query!(
     channels,
     channel_action_filters,
     copypastas,
-    persons,
+    people,
     users,
     user_settings,
     voicemails,

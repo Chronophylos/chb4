@@ -11,6 +11,7 @@ mod actions;
 mod commands;
 mod context;
 mod database;
+mod helpers;
 mod log_format;
 mod models;
 mod schema;
@@ -119,14 +120,13 @@ async fn main() {
                 }
 
                 {
-                    let tags: &twitchchat::Tags = &msg.tags;
-                    let user_id: String = tags.get_parsed("user-id").unwrap();
+                    let user_id = msg.user_id().unwrap();
                     let name = msg.name.to_owned();
-                    let display_name: String = tags.get_parsed("display-name").unwrap();
+                    let display_name = msg.display_name().unwrap();
 
                     database::bump_user(
                         &context.pool().get().unwrap(),
-                        &user_id,
+                        user_id,
                         &name,
                         &display_name,
                         &Local::now().naive_local(),

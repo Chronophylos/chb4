@@ -4,8 +4,8 @@ use super::command::{Command, CommandResult};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub struct CommandHandler<'a> {
-    commands: HashMap<String, Command<'a>>,
+pub struct CommandHandler {
+    commands: HashMap<String, Command>,
     // translate aliases to command names
     aliases: HashMap<String, String>,
 
@@ -16,7 +16,7 @@ pub struct CommandHandler<'a> {
     context: Arc<Context>,
 }
 
-impl<'a> CommandHandler<'a> {
+impl CommandHandler {
     /// Create a new CommandHandler
     pub fn new(context: Arc<Context>) -> Self {
         Self {
@@ -29,7 +29,7 @@ impl<'a> CommandHandler<'a> {
 
     /// Add `command` to the CommandHandler by saving it in `commands` with `name` as key.
     /// Save all of it's aliases in `aliases` with `name` as value and the respective alias as key.
-    fn add(&mut self, command: Command<'a>) {
+    fn add(&mut self, command: Command) {
         // insert aliases into alias map
         for alias in command.aliases() {
             self.aliases.insert(alias.to_owned(), command.name());
@@ -37,6 +37,12 @@ impl<'a> CommandHandler<'a> {
 
         // insert command into command map
         self.commands.insert(command.name(), command);
+    }
+
+    fn add_all(&mut self, commands: Vec<Command>) {
+        for command in commands {
+            self.add(command);
+        }
     }
 
     /// Get a command by `name`. This can either be the command name or any of it's aliases.
@@ -52,7 +58,7 @@ impl<'a> CommandHandler<'a> {
         writer: &mut twitchchat::client::Writer,
     ) {
         let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
-        let words: Vec<&str> = message.split_whitespace().collect();
+        let words: Vec<String> = message.split_whitespace().map(|s| s.to_string()).collect();
         let mut command_name = words[0].to_owned();
         let prefix = command_name.remove(0);
 
@@ -71,13 +77,14 @@ impl<'a> CommandHandler<'a> {
                     // or the command is enabled in this channel
 
                     trace!("Executing command");
-                    match cmd.execute(args.to_vec()) {
+                    match cmd.execute(args.to_vec(), msg.clone()) {
                         CommandResult::Message(m) => {
                             writer
                                 .privmsg(&msg.channel, &m)
                                 .await
                                 .expect("Could not write to channel");
                         }
+                        CommandResult::NoMessage => (),
                         CommandResult::Chainable(_v) => {
                             unimplemented!();
                         }
@@ -92,11 +99,11 @@ impl<'a> CommandHandler<'a> {
     }
 }
 
-pub fn new<'a>(context: Arc<Context>) -> CommandHandler<'a> {
+pub fn new(context: Arc<Context>) -> CommandHandler {
     use super::befehle;
-    let mut ch = CommandHandler::new(context);
+    let mut ch = CommandHandler::new(context.clone());
 
-    ch.add(befehle::test());
+    ch.add_all(befehle::all(context.clone()));
 
     ch
 }

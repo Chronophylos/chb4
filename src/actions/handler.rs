@@ -2,13 +2,13 @@ use super::super::context::Context;
 use super::action::{Action, ActionResult};
 use std::sync::Arc;
 
-pub struct ActionHandler<'a> {
-    actions: Vec<Action<'a>>,
+pub struct ActionHandler {
+    actions: Vec<Action>,
     #[allow(dead_code)]
     context: Arc<Context>,
 }
 
-impl<'a> ActionHandler<'a> {
+impl ActionHandler {
     /// Create a new ActionHandler
     pub fn new(context: Arc<Context>) -> Self {
         Self {
@@ -17,8 +17,14 @@ impl<'a> ActionHandler<'a> {
         }
     }
 
-    fn add(&mut self, action: Action<'a>) {
+    fn add(&mut self, action: Action) {
         self.actions.push(action);
+    }
+
+    fn add_all(&mut self, actions: Vec<Action>) {
+        for action in actions {
+            self.add(action);
+        }
     }
 
     /// Handle a privmsg
@@ -35,7 +41,7 @@ impl<'a> ActionHandler<'a> {
             debug!("Found matching action {:?}", action);
 
             if !action.whitelisted() {
-                // or the command is enabled in this channel
+                // or the action is enabled in this channel
                 trace!("Executing action");
                 match action.execute(msg.clone()) {
                     ActionResult::Message(m) => writer
@@ -52,11 +58,11 @@ impl<'a> ActionHandler<'a> {
     }
 }
 
-pub fn new<'a>(context: Arc<Context>) -> ActionHandler<'a> {
+pub fn new(context: Arc<Context>) -> ActionHandler {
     use super::aktionen;
-    let mut ah = ActionHandler::new(context);
+    let mut ah = ActionHandler::new(context.clone());
 
-    ah.add(aktionen::test());
+    ah.add_all(aktionen::all(context.clone()));
 
     ah
 }

@@ -1,30 +1,27 @@
+use std::fmt;
 use std::sync::Arc;
 use twitchchat::messages::Privmsg;
+
+pub type CommandFunction =
+    Box<dyn Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static>;
 
 pub struct Command {
     name: String,
     aliases: Vec<String>,
-    #[allow(dead_code)]
     chainable: bool,
     whitelisted: bool,
-    command: fn(Vec<&str>, Arc<Privmsg<'_>>) -> CommandResult,
+    command: CommandFunction,
 }
 
 impl Command {
-    pub fn execute(&self, args: Vec<&str>, msg: Arc<Privmsg<'_>>) -> CommandResult {
-        trace!("Executing command {} with args {:?}", self.name, args);
-        (self.command)(args, msg)
-    }
-
     pub fn name(&self) -> String {
-        self.name
+        self.name.clone()
     }
 
     pub fn aliases(&self) -> Vec<String> {
         self.aliases.clone()
     }
 
-    #[allow(dead_code)]
     pub fn chainable(&self) -> bool {
         self.chainable
     }
@@ -32,12 +29,28 @@ impl Command {
     pub fn whitelisted(&self) -> bool {
         self.whitelisted
     }
+
+    pub fn execute(&self, args: Vec<String>, msg: Arc<Privmsg<'_>>) -> CommandResult {
+        trace!("Executing command {} with args {:?}", self.name, args);
+        (self.command)(args, msg)
+    }
 }
 
-/// Shadow constructors for `CommandBuilder`
+/// Shadow constructor for `CommandBuilder`
 impl Command {
     pub fn with_name<S: Into<String>>(name: S) -> CommandBuilder {
         CommandBuilder::with_name(name)
+    }
+}
+
+impl fmt::Debug for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Action")
+            .field("name", &self.name)
+            .field("aliases", &self.aliases)
+            .field("chainable", &self.chainable)
+            .field("whitelisted", &self.whitelisted)
+            .finish()
     }
 }
 
@@ -46,7 +59,7 @@ pub struct CommandBuilder {
     aliases: Vec<String>,
     chainable: bool,
     whitelisted: bool,
-    command: fn(Vec<&str>, Arc<Privmsg<'_>>) -> CommandResult,
+    command: CommandFunction,
 }
 
 impl Into<Command> for CommandBuilder {
@@ -61,7 +74,6 @@ impl Into<Command> for CommandBuilder {
     }
 }
 
-#[allow(dead_code)]
 /// Builder functions
 impl CommandBuilder {
     pub fn new() -> Self {
@@ -70,7 +82,7 @@ impl CommandBuilder {
             aliases: vec![],
             chainable: false,
             whitelisted: false,
-            command: noop,
+            command: Box::new(noop),
         }
     }
 
@@ -81,12 +93,7 @@ impl CommandBuilder {
         }
     }
 
-    pub fn command(mut self, f: fn(Vec<&str>, Arc<Privmsg<'_>>) -> CommandResult) -> Self {
-        self.command = f;
-        self
-    }
-
-    pub fn aliases<S: Into<String>>(mut self, a: Vec<S>) -> Self {
+    pub fn aliases(mut self, a: Vec<String>) -> Self {
         self.aliases = a;
         self
     }
@@ -101,18 +108,26 @@ impl CommandBuilder {
         self
     }
 
+    pub fn command(
+        mut self,
+        f: impl Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static,
+    ) -> Self {
+        self.command = Box::new(f);
+        self
+    }
+
     pub fn done(self) -> Command {
         Command { ..self.into() }
     }
 }
 
-fn noop(_args: Vec<&str>, _msg: Arc<Privmsg<'_>>) -> CommandResult {
-    unimplemented!()
+fn noop(_args: Vec<String>, _msg: Arc<Privmsg<'_>>) -> CommandResult {
+    panic!("Missing command when building Command")
 }
 
-#[allow(dead_code)]
 pub enum CommandResult {
     Message(String),
+    NoMessage,
     Chainable(Vec<String>),
     Error(String),
 }

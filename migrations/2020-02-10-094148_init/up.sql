@@ -1,4 +1,4 @@
-CREATE TABLE persons (
+CREATE TABLE people (
     id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(45) NULL,
     last_name  VARCHAR(45) NULL,
@@ -7,7 +7,7 @@ CREATE TABLE persons (
 
 CREATE TABLE users (
     id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    twitch_id    VARCHAR(16) NULL,
+    twitch_id    BIGINT UNSIGNED NULL,
     name         VARCHAR(25) NOT NULL,
     display_name VARCHAR(25) NULL,
     first_seen   DATETIME NULL,
@@ -15,9 +15,9 @@ CREATE TABLE users (
     person_id    INT UNSIGNED NULL,
     permission   TINYINT UNSIGNED NOT NULL DEFAULT 0,
 
-    CONSTRAINT fk_users_persons
+    CONSTRAINT fk_users_people
         FOREIGN KEY (person_id)
-        REFERENCES persons (id)
+        REFERENCES people (id)
         ON DELETE CASCADE
         ON UPDATE RESTRICT
 );
@@ -62,10 +62,11 @@ CREATE TABLE copypastas (
 );
 
 CREATE TABLE channels (
-    id       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    owner_id INT UNSIGNED NOT NULL,
-    enabled  BOOLEAN NOT NULL DEFAULT false,
-    paused   BOOLEAN NOT NULL DEFAULT false,
+    id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    twitch_id BIGINT UNSIGNED NOT NULL,
+    owner_id  INT UNSIGNED NOT NULL,
+    enabled   BOOLEAN NOT NULL DEFAULT false,
+    paused    BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT fk_channel_user
         FOREIGN KEY (owner_id)

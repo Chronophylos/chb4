@@ -1,6 +1,10 @@
-mod test;
 use super::command::Command;
+use crate::context::Context;
+use std::sync::Arc;
 
-pub fn test<'a>() -> Command<'a> {
-    test::command()
+mod admin;
+mod test;
+
+pub fn all(context: Arc<Context>) -> Vec<Command> {
+    vec![test::command(), admin::command(context)]
 }

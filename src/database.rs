@@ -1,14 +1,14 @@
 //! This module currently holds all database interacting functions.
 //! This will change later as I move everything into their own module.
 
-use crate::models::{BumpUser, NewUser};
+use crate::models::{BumpUser, NewUser, User};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::MysqlConnection;
 
 pub fn create_user<'a>(
     conn: &MysqlConnection,
-    twitch_id: &'a str,
+    twitch_id: u64,
     name: &'a str,
     display_name: &'a str,
     now: &'a NaiveDateTime,
@@ -34,7 +34,7 @@ pub fn create_user<'a>(
 
 pub fn bump_user<'a>(
     conn: &MysqlConnection,
-    twitch_id: &'a str,
+    twitch_id: u64,
     name: &'a str,
     display_name: &'a str,
     now: &'a NaiveDateTime,
@@ -64,4 +64,16 @@ pub fn bump_user<'a>(
         trace!("User not found -> creating new user");
         create_user(&conn, twitch_id, name, display_name, now);
     }
+}
+
+pub fn get_user<'a>(conn: &MysqlConnection, twitch_id: u64) -> User {
+    use crate::schema::users;
+
+    trace!("Getting use (twitch_id: {})", twitch_id);
+
+    users::table
+        .filter(users::twitch_id.eq(twitch_id))
+        .limit(1)
+        .get_result(conn)
+        .expect("Error getting user")
 }
