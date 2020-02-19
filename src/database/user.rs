@@ -1,7 +1,5 @@
-//! This module currently holds all database interacting functions.
-//! This will change later as I move everything into their own module.
-
 use crate::models::{BumpUser, NewUser, User};
+use crate::schema::users;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::MysqlConnection;
@@ -13,7 +11,6 @@ pub fn create_user<'a>(
     display_name: &'a str,
     now: &'a NaiveDateTime,
 ) {
-    use crate::schema::users;
     trace!(
         "Creating new user (twitch_id: {}, name: {})",
         twitch_id,
@@ -39,8 +36,6 @@ pub fn bump_user<'a>(
     display_name: &'a str,
     now: &'a NaiveDateTime,
 ) {
-    use crate::schema::users;
-
     debug!("Bumping user (twitch_id: {})", twitch_id);
 
     let user_exits: i64 = users::table
@@ -67,13 +62,21 @@ pub fn bump_user<'a>(
 }
 
 pub fn get_user<'a>(conn: &MysqlConnection, twitch_id: u64) -> User {
-    use crate::schema::users;
-
-    trace!("Getting use (twitch_id: {})", twitch_id);
+    trace!("Getting user (twitch_id: {})", twitch_id);
 
     users::table
         .filter(users::twitch_id.eq(twitch_id))
         .limit(1)
         .get_result(conn)
         .expect("Error getting user")
+}
+
+pub fn get_user_by_name<'a>(conn: &MysqlConnection, name: &'a str) -> User {
+    trace!("Getting user (name: {})", name);
+
+    users::table
+        .filter(users::name.eq(name))
+        .limit(1)
+        .get_result(conn)
+        .expect("Could not get User by name")
 }
