@@ -1,6 +1,4 @@
-use crate::commands::command::{Command, CommandResult};
-use crate::context::Context;
-use std::sync::Arc;
+use super::prelude::*;
 
 pub fn command(_context: Arc<Context>) -> Command {
     Command::with_name("voicemail")

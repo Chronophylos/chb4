@@ -1,4 +1,4 @@
-use crate::commands::command::{Command, CommandResult};
+use super::prelude::*;
 
 pub fn command() -> Command {
     Command::with_name("color")
