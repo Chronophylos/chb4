@@ -84,9 +84,15 @@ impl CommandHandler {
                                 .await
                                 .expect("Could not write to channel");
                         }
-                        CommandResult::NoMessage => (),
-                        CommandResult::Chainable(_v) => {
-                            unimplemented!();
+                        CommandResult::NoMessage => (), // do nothing
+                        CommandResult::Chainable(v) => {
+                            //if is_chaining() {
+                            //} else {
+
+                            writer
+                                .privmsg(&msg.channel, &v[0])
+                                .await
+                                .expect("Could not write to channel");
                         }
                         CommandResult::Error(e) => {
                             error!("Could not execute command (name: {}): {}", cmd.name(), e);
