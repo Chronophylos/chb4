@@ -16,6 +16,7 @@ pub struct Ban {
 #[table_name = "channels"]
 pub struct Channel {
     pub id: u32,
+    pub twitch_id: u64,
     pub owner_id: u32,
     pub enabled: bool,
     pub paused: bool,
