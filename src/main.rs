@@ -1,11 +1,18 @@
 #![warn(clippy::all)]
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate diesel;
+
 extern crate chrono;
 extern crate config;
+#[macro_use]
+extern crate diesel;
+extern crate hyper;
+#[macro_use]
+extern crate log;
+extern crate bytes;
+extern crate futures_util;
 extern crate regex;
+extern crate simple_error;
+#[macro_use]
+extern crate serde;
 
 mod actions;
 mod commands;
@@ -17,15 +24,15 @@ mod models;
 mod schema;
 
 use chrono::prelude::*;
+use config::{Config, Environment, File, FileFormat};
 use context::Context;
+use diesel::r2d2;
 use diesel::MysqlConnection;
+use std::env;
+use std::sync::Arc;
 use twitchchat::{client::Error, client::Status, events, Client, Secure};
 // so .next() can be used on the EventStream
 // futures::stream::StreamExt will also work
-use config::{Config, Environment, File, FileFormat};
-use diesel::r2d2;
-use std::env;
-use std::sync::Arc;
 use tokio::stream::StreamExt as _;
 
 /// The main is currently full of bloat. The plan is to move everything into their own module

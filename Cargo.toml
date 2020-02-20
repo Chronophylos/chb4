@@ -10,14 +10,20 @@ lto = true
 panic = 'abort' # abort on panic instead of unwinding
 
 [dependencies]
-twitchchat        = "0.8"
-log               = "0.4"
-yansi             = "0.5"
-flexi_logger      = "0.14"
+bytes             = { version = "0.5", features = ["serde"] }
+chrono            = "0.4"
 config            = { version = "0.10", default-features = false, features = ["toml"] }
-tokio             = { version = "0.2", default-features = false, features = ["macros"] }
 diesel            = { version = "1.0", default-features = false, features = ["mysql", "chrono", "r2d2"] }
 diesel_migrations = "1.4"
-chrono            = "0.4"
-regex             = "1"
+flexi_logger      = "0.14"
+futures-util      = "0.3"
+hyper             = "0.13"
+log               = "0.4"
 rand              = { version = "0.7", features = ["log"] }
+regex             = "1"
+serde_json        = "1.0"
+serde             = { version = "1.0", features = ["derive"] }
+simple-error      = "0.2"
+tokio             = { version = "0.2", default-features = false, features = ["macros"] }
+twitchchat        = "0.8"
+yansi             = "0.5"
