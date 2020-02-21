@@ -888,9 +888,9 @@ dependencies = [
 
 [[package]]
 name = "twitchchat"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6d7278bdd7489ccbbbe31a225d457c75c8bf376a1f7b86d8625c7399a364b07"
+checksum = "df1ce3a044a98479717e48b5a362364415109d1c5955d9fd1943d23595eabe67"
 dependencies = [
  "futures",
  "log",
