@@ -10,9 +10,8 @@ extern crate log;
 extern crate bytes;
 extern crate futures_util;
 extern crate regex;
-extern crate simple_error;
-#[macro_use]
 extern crate serde;
+extern crate simple_error;
 
 mod actions;
 mod commands;
@@ -38,7 +37,6 @@ use tokio::stream::StreamExt as _;
 /// The main is currently full of bloat. The plan is to move everything into their own module
 #[tokio::main]
 async fn main() {
-    // should only be run once
     flexi_logger::Logger::with_env_or_str("chb4=trace, debug")
         .format(log_format::format)
         .start()
@@ -161,26 +159,36 @@ async fn main() {
         let join_client = client.clone();
         tokio::task::spawn(async move {
             while let Some(msg) = join.next().await {
-                let mut writer = join_client.writer();
                 // we've joined a channel
                 info!("Joined {}", msg.channel);
 
-                if msg.name == nick {
+                if msg.channel == nick {
+                    let mut writer = join_client.writer();
+
                     if let Err(err) = writer
                         .privmsg(&msg.channel, &format!("Connected with version {}", version))
                         .await
                     {
                         error!("Could not write to channel {}", err);
-                        break;
                     }
-                    break; // returning/dropping the stream un-subscribes it
                 }
             }
         });
     }
 
-    join_channel(client.clone(), &channel).await;
-    //join_channel(client.clone(), "furzbart").await;
+    {
+        let mut handles = Vec::new();
+        join_channel(client.clone(), channel).await;
+
+        for channel in database::get_enabled_channels(&context.pool().get().unwrap()) {
+            let handle = join_channel(client.clone(), channel);
+            handles.push(handle);
+        }
+
+        for handle in handles.drain(..) {
+            handle.await;
+        }
+    }
 
     // await for the client to be done
     match done.await {
@@ -204,7 +212,7 @@ async fn main() {
     client.dispatcher().await.clear_subscriptions_all();
 }
 
-async fn join_channel(client: Client, channel: &str) {
+async fn join_channel(client: Client, channel: String) {
     info!("Joining channel {}", &channel);
     // get a clonable writer from the client
     // join a channel, methods on writer return false if the client is disconnected
@@ -212,7 +220,6 @@ async fn join_channel(client: Client, channel: &str) {
         match err {
             Error::InvalidChannel(..) => {
                 error!("could not join channel because the name is empty");
-                std::process::exit(1);
             }
             _ => {
                 error!("got an error, but I don't know what to do: {}", err);

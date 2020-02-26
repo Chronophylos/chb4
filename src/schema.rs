@@ -11,7 +11,6 @@ table! {
     channels (id) {
         id -> Unsigned<Integer>,
         twitch_id -> Unsigned<Bigint>,
-        owner_id -> Unsigned<Integer>,
         enabled -> Bool,
         paused -> Bool,
     }
@@ -23,6 +22,15 @@ table! {
         channel_id -> Unsigned<Integer>,
         action_name -> Varchar,
         enable_action -> Bool,
+    }
+}
+
+table! {
+    channel_command_filters (id) {
+        id -> Unsigned<Integer>,
+        channel_id -> Unsigned<Integer>,
+        command_name -> Varchar,
+        enable_command -> Bool,
     }
 }
 
@@ -53,15 +61,16 @@ table! {
         display_name -> Nullable<Varchar>,
         first_seen -> Nullable<Datetime>,
         last_seen -> Nullable<Datetime>,
-        person_id -> Nullable<Unsigned<Integer>>,
         permission -> Unsigned<Tinyint>,
+        person_id -> Nullable<Unsigned<Integer>>,
+        channel_id -> Nullable<Unsigned<Integer>>,
+        settings_id -> Nullable<Unsigned<Integer>>,
     }
 }
 
 table! {
     user_settings (id) {
         id -> Unsigned<Integer>,
-        user_id -> Unsigned<Integer>,
         birthdays -> Bool,
     }
 }
@@ -81,16 +90,18 @@ table! {
 
 joinable!(bans -> users (user_id));
 joinable!(channel_action_filters -> channels (channel_id));
-joinable!(channels -> users (owner_id));
+joinable!(channel_command_filters -> channels (channel_id));
 joinable!(copypastas -> users (creator_id));
-joinable!(user_settings -> users (user_id));
+joinable!(users -> channels (channel_id));
 joinable!(users -> people (person_id));
+joinable!(users -> user_settings (settings_id));
 joinable!(voicemails -> channels (channel_id));
 
 allow_tables_to_appear_in_same_query!(
     bans,
     channels,
     channel_action_filters,
+    channel_command_filters,
     copypastas,
     people,
     users,
