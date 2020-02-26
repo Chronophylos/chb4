@@ -1,4 +1,6 @@
 #![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::cargo)]
 
 extern crate chrono;
 extern crate config;
