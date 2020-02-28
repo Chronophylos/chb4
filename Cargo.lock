@@ -165,14 +165,15 @@ dependencies = [
 
 [[package]]
 name = "flexi_logger"
-version = "0.14.8"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "515fb7f6541dafe542c87c12a7ab6a52190cccb6c348b5951ef62d9978189ae8"
+checksum = "5e0bf77cdf25bf4e09221df3a7b02221445ab52904133e3fa9521698cc096f87"
 dependencies = [
  "chrono",
  "glob",
  "log",
  "regex",
+ "thiserror",
  "yansi",
 ]
 
@@ -816,6 +817,26 @@ dependencies = [
  "redox_syscall",
  "remove_dir_all",
  "winapi 0.3.8",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee14bf8e6767ab4c687c9e8bc003879e042a96fd67a3ba5934eadb6536bef4db"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7b51e1fbc44b5a0840be594fbc0f960be09050f2617e61e6aa43bef97cd3ef4"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
