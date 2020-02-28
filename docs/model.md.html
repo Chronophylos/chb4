@@ -1,57 +1,107 @@
 <meta charset="utf-8"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/slate.css?">
 
-# Database Model
+# Schema
 
 Data types are not complete. For a complete description see the definitions below.
 
-***********************************************************************************************************************
+********************************************************************************************************************************************************
 *
-*  .--------------------------------.                   .--------------------------.
-*  | User: users                    |                   | Person: persons          |
-*  +--------------------------------+                   +--------------------------+
-*  | _id_:         INT UNSIGNED     | 1..n  owned by  1 | _id_:       INT UNSIGNED |
-*  | twitch_id:    BIGINT           +------------------>| first_name: VARCHAR(45)  |
-*  | name:         VARCHAR(25)      |                   | last_name:  VARCHAR(45)  |
-*  | display_name: VARCHAR(25)      |                   | dob:        DATE         |
-*  | first_seen:   DATETIME         |                   '--------------------------'
-*  | last_seen:    DATETIME         |
-*  | person_id:    INT UNSIGNED     | 1   valid for   1 .------------------------------.
-*  | permission:   TINYINT UNSIGNED +------------------>+ User Settings: user_settings |
-*  '--------------------------------'                   +------------------------------+
-*                                |                      | _id_:      INT UNSIGNED      |
-*                                | 1                    | user_id:   INT UNSIGNED      |
-*                                |                      | birthdays: BOOLEAN           |
-*                                |                      '------------------------------'
-*                                |
-*                                |                      .-----------------------.
-*                                |                      | Ban: bans             |
-*                                |    has          1..n +-----------------------+
-*                                +--------------------->+ _id_:    INT UNSIGNED |
-*                                                       | user_id: INT UNSIGNED |
-*                                                       | created: DATETIME     |
-*                                                       | until:   DATETIME     |
-*                                                       '-----------------------'
+*                                                                .--------------------------------.                   .--------------------------.
+*                                                                | User: users                    |                   | Person: people           |
+*                                                                +--------------------------------+                   +--------------------------+
+*                                                                | _id_:         INT UNSIGNED     | 1..n  owned by  1 | _id_:       INT UNSIGNED |
+*                                                                | twitch_id:    BIGINT           +------------------>| first_name: VARCHAR(45)  |
+*                                                                | name:         VARCHAR(25)      |                   | last_name:  VARCHAR(45)  |
+*                                                                | display_name: VARCHAR(25)      |                   | dob:        DATE         |
+*                                                                | first_seen:   DATETIME         |                   '--------------------------'
+*                                                                | last_seen:    DATETIME         |
+*                                                                | permission:   TINYINT UNSIGNED |                   .------------------------------.
+*                                                                | person_id:    INT UNSIGNED     |                   | User Settings: user_settings |
+*                                                                | channel_id:   INT UNSIGNED     | 1   valid for   1 +------------------------------+
+*                                                                | settings_id:  INT UNSIGNED     +------------------>+ _id_:      INT UNSIGNED      |
+*                                                                '-----------------+-----------+--'                   | birthdays: BOOLEAN           |
+*                                                                                  |           ^                      '------------------------------'
+*                                                                                1 |           | 1
+*                                                                                  |           |                      .-----------------------.
+*                                                                                  |           |                      | Ban: bans             |
+*                                                                                  |           |    has          1..n +-----------------------+
+*                                                                              has |           +----------------------+ _id_:    INT UNSIGNED |
+*                                                                                  |                                  | user_id: INT UNSIGNED |
+*                                                                                  |                                  | created: DATETIME     |
+*                                                                                1 |                                  | until:   DATETIME     |
+*                                                                                  |                                  '-----------------------'
+*                                                                                  v
+*                                                                .----------------------------.
+*                                                                | Channel: channels          |
+*                                                                +----------------------------+
+*                                                                | _id_:      INT UNSIGNED    |
+*                                                                | twitch_id: BIGINT UNSIGNED |
+*                                                                | enabled:   BOOLEAN         |
+*                                                                | paused:    BOOLEAN         |
+*                                                                '----------------------------'
 *
 *
 *
-***********************************************************************************************************************
+*
+********************************************************************************************************************************************************
 
-# User (`users`)
+
+# Table Descriptions
+
+
+## User (`users`)
 
 A user is a account on twitch.
 
-## Attributes
+### Attributes
 
-Name         | Type                                    | Comment
--------------|-----------------------------------------|-------------------------------------
-id           | UNSIGNED INT AUTO_INCREMENT PRIMARY KEY | internal id and primary key
-twitch_id    | BIGINT NULL                             | id on twitch
-name         | VARCHAR(25) NOT NULL                    | username on twitch
-display_name | VARCHAR(25) NULL                        | display name in chat
-first_seen   | DATETIME NULL                           | when the user was first seen in chat
-last_seen    | DATETIME NULL                           | when the user was last seen in chat
-person_id    | INT UNSIGNED NULL                       | foreign key to `persons`
-permission   | TINYINT UNSIGNED NOT NULL DEFAULT 0     | permission level
+Name           | Type                                      | Comment
+---------------|-------------------------------------------|-------------------------------------
+`id`           | `UNSIGNED INT AUTO_INCREMENT PRIMARY KEY` | internal id and primary key
+`twitch_id`    | `BIGINT NULL`                             | id on twitch
+`name`         | `VARCHAR(25) NOT NULL`                    | username on twitch
+`display_name` | `VARCHAR(25) NULL`                        | display name in chat
+`first_seen`   | `DATETIME NULL`                           | when the user was first seen in chat
+`last_seen`    | `DATETIME NULL`                           | when the user was last seen in chat
+`permission`   | `TINYINT UNSIGNED NOT NULL DEFAULT 0`     | permission level
+`person_id`    | `INT UNSIGNED NULL`                       | foreign key to `persons`
+`channel_id`   | `INT UNSIGNED NULL`                       | foreign key to `channel`
+`settings_id`  | `INT UNSIGNED NULL`                       | foreign key to `settings`
+
+
+## Person (`people`)
+
+The real identity of a user. A person can have multiple accounts.
+
+### Attributes
+
+Name           | Type                                      | Comment
+---------------|-------------------------------------------|-------------------------------------
+`id`           | `UNSIGNED INT AUTO_INCREMENT PRIMARY KEY` | internal id and primary key
+`first_name`   | `VARCHAR(45) NULL`                        | first name
+`last_name`    | `VARCHAR(45) NULL`                        | last name
+`dob`          | `DATE NULL`                               | date of birth
+
+
+## User Settings (`user_settings`)
+
+### Attributes
+
+Name           | Type                                      | Comment
+---------------|-------------------------------------------|--------------------------------------
+`id`           | `UNSIGNED INT AUTO_INCREMENT PRIMARY KEY` | internal id and primary key
+`birthdays`    | `BOOLEAN NOT NULL`                        | gratulate this user to their birthday
+
+## Ban (`bans`)
+
+### Attributes
+
+Name           | Type                                      | Comment
+---------------|-------------------------------------------|--------------------------------------
+`id`           | `UNSIGNED INT AUTO_INCREMENT PRIMARY KEY` | internal id and primary key
+`user_id`      | `INT UNSIGNED NULL`                       | foreign key to `user`
+`created`      | `DATETIME NOT NULL`                       | when the ban was created
+`until`        | `DATETIME NULL`                           | when the ban will lift. `NULL` mean never
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="markdeep.min.js" charset="utf-8"></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js" charset="utf-8"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
-<!-- vim: set ft=html ve=all cole=0: -->
+<!-- vim: set ft=markdeep ve=all cole=0: -->

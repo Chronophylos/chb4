@@ -216,6 +216,7 @@ async fn main() {
 
 async fn join_channel(client: Client, channel: String) {
     info!("Joining channel {}", &channel);
+
     // get a clonable writer from the client
     // join a channel, methods on writer return false if the client is disconnected
     if let Err(err) = client.writer().join(&channel).await {
