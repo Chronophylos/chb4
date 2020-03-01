@@ -54,6 +54,32 @@ impl fmt::Debug for Command {
     }
 }
 
+impl chb4::Documentation for Command {
+    fn name(&self) -> String {
+        self.name()
+    }
+
+    fn description(&self) -> String {
+        String::from("Not implemented")
+    }
+
+    fn aliases(&self) -> Option<String> {
+        Some(self.aliases.join(", "))
+    }
+
+    fn regex(&self) -> Option<String> {
+        None
+    }
+
+    fn chainable(&self) -> String {
+        String::from(if self.chainable { "yes" } else { "no" })
+    }
+
+    fn whitelisted(&self) -> String {
+        String::from(if self.whitelisted { "yes" } else { "no" })
+    }
+}
+
 pub struct CommandBuilder {
     name: String,
     aliases: Vec<String>,

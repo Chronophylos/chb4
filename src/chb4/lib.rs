@@ -10,6 +10,8 @@ pub mod helpers;
 pub mod models;
 pub mod schema;
 
+mod documentation;
 mod log_format;
 
+pub use documentation::Documentation;
 pub use log_format::format;

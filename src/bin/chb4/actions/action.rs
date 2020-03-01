@@ -47,6 +47,32 @@ impl fmt::Debug for Action {
     }
 }
 
+impl chb4::Documentation for Action {
+    fn name(&self) -> String {
+        self.name()
+    }
+
+    fn description(&self) -> String {
+        String::from("Not implemented")
+    }
+
+    fn aliases(&self) -> Option<String> {
+        Some(format!("{}", self.regex))
+    }
+
+    fn regex(&self) -> Option<String> {
+        None
+    }
+
+    fn chainable(&self) -> String {
+        String::from("no")
+    }
+
+    fn whitelisted(&self) -> String {
+        String::from(if self.whitelisted { "yes" } else { "no" })
+    }
+}
+
 pub struct ActionBuilder {
     name: String,
     regex: Regex,
