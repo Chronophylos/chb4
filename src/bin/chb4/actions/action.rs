@@ -57,11 +57,11 @@ impl chb4::Documentation for Action {
     }
 
     fn aliases(&self) -> Option<String> {
-        Some(format!("{}", self.regex))
+        None
     }
 
     fn regex(&self) -> Option<String> {
-        None
+        Some(format!("{}", self.regex))
     }
 
     fn chainable(&self) -> String {
