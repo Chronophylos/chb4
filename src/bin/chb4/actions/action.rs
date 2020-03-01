@@ -9,6 +9,7 @@ pub struct Action {
     name: String,
     regex: Regex,
     whitelisted: bool,
+    description: String,
     command: ActionFunction,
 }
 
@@ -53,7 +54,7 @@ impl chb4::Documentation for Action {
     }
 
     fn description(&self) -> String {
-        String::from("Not implemented")
+        self.description.clone()
     }
 
     fn aliases(&self) -> Option<String> {
@@ -77,6 +78,7 @@ pub struct ActionBuilder {
     name: String,
     regex: Regex,
     whitelisted: bool,
+    description: String,
     command: ActionFunction,
 }
 impl Into<Action> for ActionBuilder {
@@ -85,6 +87,7 @@ impl Into<Action> for ActionBuilder {
             name: self.name,
             regex: self.regex,
             whitelisted: self.whitelisted,
+            description: self.description,
             command: self.command,
         }
     }
@@ -98,6 +101,7 @@ impl ActionBuilder {
             #[allow(clippy::trivial_regex)]
             regex: Regex::new("").unwrap(),
             whitelisted: false,
+            description: String::new(),
             command: Box::new(noop),
         }
     }
@@ -119,9 +123,13 @@ impl ActionBuilder {
         self
     }
 
-    #[allow(dead_code)]
     pub fn whitelisted(mut self) -> Self {
         self.whitelisted = true;
+        self
+    }
+
+    pub fn description<S: Into<String>>(mut self, text: S) -> Self {
+        self.description = description;
         self
     }
 

@@ -10,6 +10,7 @@ pub struct Command {
     aliases: Vec<String>,
     chainable: bool,
     whitelisted: bool,
+    description: String,
     command: CommandFunction,
 }
 
@@ -60,7 +61,7 @@ impl chb4::Documentation for Command {
     }
 
     fn description(&self) -> String {
-        String::from("Not implemented")
+        self.description.clone()
     }
 
     fn aliases(&self) -> Option<String> {
@@ -85,6 +86,7 @@ pub struct CommandBuilder {
     aliases: Vec<String>,
     chainable: bool,
     whitelisted: bool,
+    description: String,
     command: CommandFunction,
 }
 
@@ -95,6 +97,7 @@ impl Into<Command> for CommandBuilder {
             aliases: self.aliases,
             chainable: self.chainable,
             whitelisted: self.whitelisted,
+            description: self.description,
             command: self.command,
         }
     }
@@ -131,6 +134,11 @@ impl CommandBuilder {
 
     pub fn whitelisted(mut self) -> Self {
         self.whitelisted = true;
+        self
+    }
+
+    pub fn description<S: Into<String>>(mut self, text: S) -> Self {
+        self.description = description;
         self
     }
 
