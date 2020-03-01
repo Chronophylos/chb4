@@ -125,7 +125,7 @@ async fn main() {
                         user_id,
                         &name,
                         &display_name,
-                        &Local::now().naive_local(),
+                        &Local::now(),
                     ) {
                         error!("{}", e);
                     }

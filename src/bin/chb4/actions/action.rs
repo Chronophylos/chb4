@@ -129,7 +129,7 @@ impl ActionBuilder {
     }
 
     pub fn description<S: Into<String>>(mut self, text: S) -> Self {
-        self.description = description;
+        self.description = text.into();
         self
     }
 

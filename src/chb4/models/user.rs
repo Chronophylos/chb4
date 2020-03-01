@@ -24,10 +24,20 @@ pub struct User {
     pub first_seen: Option<NaiveDateTime>,
     pub last_seen: Option<NaiveDateTime>,
     pub permission: u8,
+    pub banned_until: Option<NaiveDateTime>,
 
     pub person_id: Option<u32>,
     pub channel_id: Option<u32>,
     pub settings_id: Option<u32>,
+}
+
+impl User {
+    pub fn banned(&self, now: DateTime<Local>) -> bool {
+        match self.banned_until {
+            None => false,
+            Some(until) => now.naive_utc() < until,
+        }
+    }
 }
 
 #[derive(Insertable)]

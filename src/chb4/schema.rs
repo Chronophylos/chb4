@@ -1,13 +1,4 @@
 table! {
-    bans (id) {
-        id -> Unsigned<Integer>,
-        user_id -> Unsigned<Integer>,
-        created -> Datetime,
-        until -> Nullable<Datetime>,
-    }
-}
-
-table! {
     channels (id) {
         id -> Unsigned<Integer>,
         twitch_id -> Unsigned<Bigint>,
@@ -62,6 +53,7 @@ table! {
         first_seen -> Nullable<Datetime>,
         last_seen -> Nullable<Datetime>,
         permission -> Unsigned<Tinyint>,
+        banned_until -> Nullable<Datetime>,
         person_id -> Nullable<Unsigned<Integer>>,
         channel_id -> Nullable<Unsigned<Integer>>,
         settings_id -> Nullable<Unsigned<Integer>>,
@@ -88,7 +80,6 @@ table! {
     }
 }
 
-joinable!(bans -> users (user_id));
 joinable!(channel_action_filters -> channels (channel_id));
 joinable!(channel_command_filters -> channels (channel_id));
 joinable!(copypastas -> users (creator_id));
@@ -98,7 +89,6 @@ joinable!(users -> user_settings (settings_id));
 joinable!(voicemails -> channels (channel_id));
 
 allow_tables_to_appear_in_same_query!(
-    bans,
     channels,
     channel_action_filters,
     channel_command_filters,

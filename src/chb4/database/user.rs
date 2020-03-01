@@ -29,9 +29,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub fn create<'a>(
     conn: &MysqlConnection,
     twitch_id: u64,
-    name: &'a str,
-    display_name: &'a str,
-    now: &'a NaiveDateTime,
+    name: &str,
+    display_name: &str,
+    now: &DateTime<Local>,
 ) -> Result<bool> {
     trace!(
         "Creating new user (twitch_id: {}, name: {})",
@@ -39,13 +39,15 @@ pub fn create<'a>(
         name
     );
 
+    let now = now.naive_utc();
+
     let inserted = diesel::insert_into(users::table)
         .values(&NewUser {
             twitch_id,
             name,
             display_name,
-            first_seen: now,
-            last_seen: now,
+            first_seen: &now,
+            last_seen: &now,
         })
         .execute(conn)
         .context(InsertUser { name, twitch_id })?;
@@ -58,8 +60,8 @@ pub fn bump<'a>(
     twitch_id: u64,
     name: &'a str,
     display_name: &'a str,
-    now: &'a NaiveDateTime,
-) -> Result<()> {
+    now: &DateTime<Local>,
+) -> Result<User> {
     debug!("Bumping user (twitch_id: {})", twitch_id);
 
     let user_exits: i64 = users::table
@@ -75,7 +77,7 @@ pub fn bump<'a>(
             .set(&BumpUser {
                 name,
                 display_name,
-                last_seen: now,
+                last_seen: &now.naive_utc(),
             })
             .execute(conn)
             .expect("Error bumping user");
@@ -84,7 +86,7 @@ pub fn bump<'a>(
         create(&conn, twitch_id, name, display_name, now)?;
     }
 
-    Ok(())
+    Ok(by_twitch_id(conn, twitch_id)?)
 }
 
 pub fn by_twitch_id<'a>(conn: &MysqlConnection, twitch_id: u64) -> Result<User> {

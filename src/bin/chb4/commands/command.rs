@@ -111,6 +111,7 @@ impl CommandBuilder {
             aliases: vec![],
             chainable: false,
             whitelisted: false,
+            description: String::new(),
             command: Box::new(noop),
         }
     }
@@ -138,7 +139,7 @@ impl CommandBuilder {
     }
 
     pub fn description<S: Into<String>>(mut self, text: S) -> Self {
-        self.description = description;
+        self.description = text.into();
         self
     }
 

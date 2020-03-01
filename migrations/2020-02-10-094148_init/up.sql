@@ -51,6 +51,7 @@ CREATE TABLE users (
     first_seen   DATETIME NULL,
     last_seen    DATETIME NULL,
     permission   TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    banned_until DATETIME NULL,
 
     person_id    INT UNSIGNED NULL,
     channel_id   INT UNSIGNED NULL,
@@ -71,19 +72,6 @@ CREATE TABLE users (
     CONSTRAINT fk_users_user_settings
         FOREIGN KEY (settings_id)
         REFERENCES user_settings (id)
-        ON DELETE CASCADE
-        ON UPDATE RESTRICT
-);
-
-CREATE TABLE bans (
-    id      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NOT NULL,
-    created DATETIME NOT NULL,
-    until   DATETIME NULL,
-
-    CONSTRAINT fk_ban_user
-        FOREIGN KEY (user_id)
-        REFERENCES users (id)
         ON DELETE CASCADE
         ON UPDATE RESTRICT
 );
