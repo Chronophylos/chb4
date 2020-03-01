@@ -3,21 +3,43 @@ use crate::schema::users;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::MysqlConnection;
+use snafu::{ResultExt, Snafu};
 
-pub fn create_user<'a>(
+#[derive(Debug, Snafu)]
+pub enum Error {
+    GetUserByTwitchID {
+        twitch_id: u64,
+        source: diesel::result::Error,
+    },
+
+    GetUserByName {
+        name: String,
+        source: diesel::result::Error,
+    },
+
+    InsertUser {
+        name: String,
+        twitch_id: u64,
+        source: diesel::result::Error,
+    },
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+pub fn create<'a>(
     conn: &MysqlConnection,
     twitch_id: u64,
     name: &'a str,
     display_name: &'a str,
     now: &'a NaiveDateTime,
-) {
+) -> Result<bool> {
     trace!(
         "Creating new user (twitch_id: {}, name: {})",
         twitch_id,
         name
     );
 
-    diesel::insert_into(users::table)
+    let inserted = diesel::insert_into(users::table)
         .values(&NewUser {
             twitch_id,
             name,
@@ -26,23 +48,25 @@ pub fn create_user<'a>(
             last_seen: now,
         })
         .execute(conn)
-        .expect("Error saving user");
+        .context(InsertUser { name, twitch_id })?;
+
+    Ok(inserted == 1)
 }
 
-pub fn bump_user<'a>(
+pub fn bump<'a>(
     conn: &MysqlConnection,
     twitch_id: u64,
     name: &'a str,
     display_name: &'a str,
     now: &'a NaiveDateTime,
-) {
+) -> Result<()> {
     debug!("Bumping user (twitch_id: {})", twitch_id);
 
     let user_exits: i64 = users::table
         .filter(users::twitch_id.eq(twitch_id))
         .count()
         .get_result(conn)
-        .expect("Error getting user");
+        .context(GetUserByTwitchID { twitch_id })?;
 
     if user_exits == 1 {
         trace!("User found -> bumping user");
@@ -57,26 +81,28 @@ pub fn bump_user<'a>(
             .expect("Error bumping user");
     } else {
         trace!("User not found -> creating new user");
-        create_user(&conn, twitch_id, name, display_name, now);
+        create(&conn, twitch_id, name, display_name, now)?;
     }
+
+    Ok(())
 }
 
-pub fn get_user<'a>(conn: &MysqlConnection, twitch_id: u64) -> User {
+pub fn by_twitch_id<'a>(conn: &MysqlConnection, twitch_id: u64) -> Result<User> {
     trace!("Getting user (twitch_id: {})", twitch_id);
 
     users::table
         .filter(users::twitch_id.eq(twitch_id))
         .limit(1)
         .get_result(conn)
-        .expect("Error getting user")
+        .context(GetUserByTwitchID { twitch_id })
 }
 
-pub fn get_user_by_name<'a>(conn: &MysqlConnection, name: &'a str) -> User {
+pub fn by_name<'a>(conn: &MysqlConnection, name: &'a str) -> Result<User> {
     trace!("Getting user (name: {})", name);
 
     users::table
         .filter(users::name.eq(name))
         .limit(1)
         .get_result(conn)
-        .expect("Could not get User by name")
+        .context(GetUserByName { name })
 }

@@ -1,24 +1,53 @@
+use super::*;
 use crate::models::{Channel, User};
-use crate::schema::{channels, users};
+use crate::schema::channels;
 use diesel::prelude::*;
 use diesel::MysqlConnection;
+use snafu::{ensure, ResultExt, Snafu};
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Channel {} was not found", channel_id))]
+    GetChannel {
+        channel_id: u32,
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("User {} has no channel entry", user))]
+    UserHasNoChannel {
+        user: String,
+    },
+
+    UserError {
+        source: user::Error,
+    },
+}
+
+impl From<user::Error> for Error {
+    fn from(error: user::Error) -> Self {
+        Self::UserError { source: error }
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 // todo return result instead
-pub fn get_channel<'a>(conn: &MysqlConnection, name: &'a str) -> Option<Channel> {
-    use super::get_user_by_name;
+pub fn by_name<'a>(conn: &MysqlConnection, name: &'a str) -> Result<Channel> {
+    let user = user::by_name(conn, name)?;
 
-    let user = get_user_by_name(conn, name);
+    ensure!(
+        user.channel_id.is_some(),
+        UserHasNoChannel { user: user.name }
+    );
 
-    if user.channel_id.is_none() {
-        return None;
-    }
+    let channel_id = user.channel_id.unwrap();
 
     let channel = channels::table
-        .filter(channels::id.eq(user.channel_id.unwrap()))
+        .filter(channels::id.eq(channel_id))
         .get_result(conn)
-        .expect("Could not get channel belonging to user");
+        .context(GetChannel { channel_id })?;
 
-    Some(channel)
+    Ok(channel)
 }
 
 /// Join a channel with `name`. If the channel already exists simply update `enabled` to `true`
@@ -50,29 +79,36 @@ pub fn get_channel<'a>(conn: &MysqlConnection, name: &'a str) -> Option<Channel>
 ///                     '-------------------------'             | and set enabled to `true` |
 ///                                                             '---------------------------'
 /// ```
-// todo: return result
-pub fn join_channel<'a>(conn: &MysqlConnection, name: &'a str) {
-    let channel = match get_channel(conn, name) {
-        Some(c) => {
-            diesel::update(&c)
-                .set(channels::enabled.eq(true))
-                .execute(conn)
-                .expect("Error enabling channel");
-        }
-        None => todo!("create channel with enabled = true"),
-    };
+pub fn join<'a>(conn: &MysqlConnection, name: &'a str) -> Result<()> {
+    let user = user::by_name(conn, name)?;
+
+    if user.channel_id.is_none() {
+        todo!("create channel")
+    } else {
+        let channel_id = user.channel_id.unwrap();
+
+        diesel::update(channels::table)
+            .filter(channels::id.eq(channel_id))
+            .set(channels::enabled.eq(true))
+            .execute(conn)
+            .expect("Error enabling channel");
+    }
+
+    Ok(())
 }
 
-pub fn leave_channel<'a>(conn: &MysqlConnection, name: &'a str) {
-    let channel = get_channel(conn, name).unwrap();
+pub fn leave<'a>(conn: &MysqlConnection, name: &'a str) -> Result<()> {
+    let channel = by_name(conn, name)?;
 
     diesel::update(&channel)
         .set(channels::enabled.eq(false))
         .execute(conn)
         .expect("Error disabling channel");
+
+    Ok(())
 }
 
-pub fn get_enabled_channels(conn: &MysqlConnection) -> Vec<String> {
+pub fn all_enabled(conn: &MysqlConnection) -> Vec<String> {
     let channels = channels::table
         .filter(channels::enabled.eq(true))
         .load::<Channel>(conn)

@@ -1,11 +1,5 @@
-#![warn(clippy::all)]
-#![warn(clippy::pedantic)]
-#![warn(clippy::cargo)]
-
 extern crate chrono;
 extern crate config;
-#[macro_use]
-extern crate diesel;
 extern crate hyper;
 #[macro_use]
 extern crate log;
@@ -13,20 +7,15 @@ extern crate bytes;
 extern crate futures_util;
 extern crate regex;
 extern crate serde;
-extern crate simple_error;
 
 mod actions;
 mod commands;
-mod context;
-mod database;
-mod helpers;
-mod log_format;
-mod models;
-mod schema;
+
+use chb4::context::Context;
+use chb4::database;
 
 use chrono::prelude::*;
 use config::{Config, Environment, File, FileFormat};
-use context::Context;
 use diesel::r2d2;
 use diesel::MysqlConnection;
 use std::env;
@@ -40,7 +29,7 @@ use tokio::stream::StreamExt as _;
 #[tokio::main]
 async fn main() {
     flexi_logger::Logger::with_env_or_str("chb4=trace, debug")
-        .format(log_format::format)
+        .format(chb4::format)
         .start()
         .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
 
@@ -131,13 +120,15 @@ async fn main() {
                     let name = msg.name.to_owned();
                     let display_name = msg.display_name().unwrap();
 
-                    database::bump_user(
+                    if let Err(e) = database::user::bump(
                         &context.pool().get().unwrap(),
                         user_id,
                         &name,
                         &display_name,
                         &Local::now().naive_local(),
-                    );
+                    ) {
+                        error!("{}", e);
+                    }
                 }
 
                 {
@@ -182,7 +173,7 @@ async fn main() {
         let mut handles = Vec::new();
         join_channel(client.clone(), channel).await;
 
-        for channel in database::get_enabled_channels(&context.pool().get().unwrap()) {
+        for channel in database::channel::all_enabled(&context.pool().get().unwrap()) {
             let handle = join_channel(client.clone(), channel);
             handles.push(handle);
         }

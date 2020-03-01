@@ -1,21 +1,21 @@
 use config::Config;
-use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::r2d2::ConnectionManager;
 use diesel::MysqlConnection;
 
-type ThePool = Pool<ConnectionManager<MysqlConnection>>;
+type Pool = diesel::r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
 #[derive(Clone)]
 pub struct Context {
     config: Config,
-    pool: ThePool,
+    pool: Pool,
 }
 
 impl Context {
-    pub fn new(config: Config, pool: ThePool) -> Self {
+    pub fn new(config: Config, pool: Pool) -> Self {
         Self { config, pool }
     }
 
-    pub fn pool(&self) -> &ThePool {
+    pub fn pool(&self) -> &Pool {
         &self.pool
     }
 
