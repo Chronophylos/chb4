@@ -1,11 +1,20 @@
 # TODO
 - [ ] Add Database
+    - [x] User
+    - [ ] UserSettings
+    - [ ] Person
+    - [ ] Ban
+    - [x] Channel
+    - [ ] ChannelFilter
+    - [ ] Copypasta
+    - [ ] Voicemail
 - [ ] Add Command System
     - [ ] Migrate Commands
     - [ ] Add Command for https://www.babelstone.co.uk/Unicode/whatisit.html
 - [ ] Add Action System
     - [ ] Migrate Actions
         - [ ] Add Voicemail Action
+- [ ] Add description to all actions and commands
 * use https://customapi.aidenwallis.co.uk to make my life easier
 
 ## Command System
