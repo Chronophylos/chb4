@@ -6,11 +6,12 @@ image:https://github.com/Chronophylos/chb4/workflows/Test/badge.svg[Tests]
 image:https://github.com/Chronophylos/chb4/workflows/Clippy/badge.svg[Clippy]
 image:https://app.fossa.com/api/projects/git%2Bgithub.com%2FChronophylos%2Fchb4.svg?type=shield[Fossa]
 
-A Twitchbot written in Rust.
+Another Twitchbot but written in Rust.
 
 == Description
 
-After rewriting my bot several times first in TypeScript, then in Golang, I decided to do it again. But this time in Rust.
+After rewriting my bot several times first in TypeScript, then in Golang, I
+decided to do it again. But this time in Rust.
 
 == Features
 
@@ -32,11 +33,14 @@ and more that I didn't write here, yet
 
 == License
 
-CHB4 is licensed under the link:LICENSE[MIT License]
+// CHB4 is licensed under the link:LICENSE[MIT License]
 
-== Contributing
+This project is currently unlicensed. This means you may look at the code but
+neither use, edit, copy, distribute or sell it.
 
-Feel free to open a PR
+// == Contributing
+//
+// Feel free to open a PR
 
 == Other cool Twitchbots
 
