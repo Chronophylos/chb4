@@ -44,6 +44,11 @@ pub trait Documentation {
 
     fn about(&self) -> String {
         let alternate = String::new(); // todo
-        format!("{}{}: {}", self.name(), alternate, self.description())
+        format!(
+            "{}{}: {}",
+            self.name(),
+            alternate,
+            self.description().split_terminator("\n\n").next().unwrap()
+        )
     }
 }

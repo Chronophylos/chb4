@@ -44,5 +44,16 @@ pub fn command(context: Arc<Context>) -> Command {
                 None => CommandResult::Message(String::from("Missing sub-command")),
             }
         })
+        .description(
+            "has various sub commands to do admin stuff.
+
+USAGE: admin SUBCOMMAND
+
+SUB COMMANDS:
+    stop - stop the bot
+    leave CHANNEL - leave a channel
+    join CHANNEL - join a channel
+            ",
+        )
         .done()
 }

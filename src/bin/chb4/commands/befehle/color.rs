@@ -10,5 +10,6 @@ pub fn command() -> Command {
                 format!("{}", color),
             ])
         })
+        .description("Prints your chat color")
         .done()
 }

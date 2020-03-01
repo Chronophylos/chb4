@@ -9,5 +9,11 @@ pub fn command() -> Command {
                 CommandResult::Message(String::from("Testing ") + &args[0])
             }
         })
+        .description(
+            "A Command to test the bot.
+
+USAGE: test [TEXT]...
+",
+        )
         .done()
 }
