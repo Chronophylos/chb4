@@ -32,7 +32,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn banned(&self, now: DateTime<Local>) -> bool {
+    pub fn banned(&self, now: &DateTime<Local>) -> bool {
         match self.banned_until {
             None => false,
             Some(until) => now.naive_utc() < until,

@@ -119,15 +119,25 @@ async fn main() {
                     let user_id = msg.user_id().unwrap();
                     let name = msg.name.to_owned();
                     let display_name = msg.display_name().unwrap();
+                    let now = Local::now();
 
-                    if let Err(e) = database::user::bump(
+                    let user = match database::user::bump(
                         &context.pool().get().unwrap(),
                         user_id,
                         &name,
                         &display_name,
-                        &Local::now(),
+                        &now,
                     ) {
-                        error!("{}", e);
+                        Ok(u) => u,
+                        Err(e) => {
+                            error!("{}", e);
+                            continue;
+                        }
+                    };
+
+                    if user.banned(&now) {
+                        trace!("User {} is banned. Ignoring message.", user.name);
+                        continue;
                     }
                 }
 
