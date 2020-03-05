@@ -13,7 +13,7 @@ panic = 'abort' # abort on panic instead of unwinding
 twitchchat        = "0.8"
 log               = "0.4"
 yansi             = "0.5"
-flexi_logger      = "0.14"
+flexi_logger      = "0.15"
 config            = { version = "0.10", default-features = false, features = ["toml"] }
 tokio             = { version = "0.2", default-features = false, features = ["macros"] }
 diesel            = { version = "1.0", default-features = false, features = ["mysql", "chrono", "r2d2"] }
