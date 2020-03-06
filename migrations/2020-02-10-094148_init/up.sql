@@ -7,7 +7,7 @@ CREATE TABLE people (
 
 CREATE TABLE channels (
     id        SERIAL PRIMARY KEY,
-    twitch_id BIGINT NOT NULL,
+    twitch_id BIGINT NULL,
     enabled   BOOLEAN NOT NULL DEFAULT false,
     paused    BOOLEAN NOT NULL DEFAULT false
 );

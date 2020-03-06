@@ -19,7 +19,7 @@ table! {
 table! {
     channels (id) {
         id -> Int4,
-        twitch_id -> Int8,
+        twitch_id -> Nullable<Int8>,
         enabled -> Bool,
         paused -> Bool,
     }

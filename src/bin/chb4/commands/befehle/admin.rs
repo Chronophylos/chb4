@@ -2,6 +2,7 @@ use super::prelude::*;
 
 use chb4::database;
 use chb4::helpers::Permission;
+use futures_executor::block_on;
 
 pub fn command(context: Arc<Context>) -> Command {
     Command::with_name("admin")
@@ -14,7 +15,7 @@ pub fn command(context: Arc<Context>) -> Command {
             }
 
             match args.get(0).map(String::as_str) {
-                Some("stop") => stop(),
+                Some("stop") => stop(context.clone()),
                 Some("leave") => leave(context.clone(), args[1..].to_vec()),
                 Some("join") => join(context.clone(), args[1..].to_vec()),
                 Some(_) => CommandResult::Message(String::from("Unknown sub-command")),
@@ -35,13 +36,24 @@ SUBCOMMANDS:
         .done()
 }
 
-fn stop() -> CommandResult {
-    use std::process;
-    process::exit(0);
+fn stop(context: Arc<Context>) -> CommandResult {
+    warn!("Stopping bot by command!");
+
+    // stop the chat client
+    block_on(async {
+        info!("Stopping chat client");
+        context.chat().stop().await.unwrap()
+    });
+
+    info!("Stopping process");
+    std::process::exit(0);
 }
 
 fn leave(context: Arc<Context>, args: Vec<String>) -> CommandResult {
-    let channel = args.get(0).unwrap();
+    let channel = match args.get(0) {
+        Some(c) => c,
+        None => return CommandResult::Message(String::from("Missing channel")),
+    };
 
     match database::channel::leave(&context.pool().get().unwrap(), &channel) {
         Err(e) => CommandResult::Error(format!("{:?}", e)),
@@ -50,7 +62,10 @@ fn leave(context: Arc<Context>, args: Vec<String>) -> CommandResult {
 }
 
 fn join(context: Arc<Context>, args: Vec<String>) -> CommandResult {
-    let channel = args.get(0).unwrap();
+    let channel = match args.get(0) {
+        Some(c) => c,
+        None => return CommandResult::Message(String::from("Missing channel")),
+    };
 
     match database::channel::join(&context.pool().get().unwrap(), &channel) {
         Err(e) => CommandResult::Error(format!("{:?}", e)),

@@ -4,9 +4,16 @@ use crate::schema::*;
 #[table_name = "channels"]
 pub struct Channel {
     pub id: i32,
-    pub twitch_id: i64,
+    pub twitch_id: Option<i64>,
     pub enabled: bool,
     pub paused: bool,
+}
+
+#[derive(Insertable)]
+#[table_name = "channels"]
+pub struct NewChannel {
+    pub twitch_id: Option<i64>,
+    pub enabled: bool,
 }
 
 #[derive(Queryable, Identifiable, Associations)]

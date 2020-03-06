@@ -1,6 +1,6 @@
 use super::*;
-use crate::models::{Channel, User};
-use crate::schema::channels;
+use crate::models::{Channel, NewChannel, NewUserWithName, User};
+use crate::schema::*;
 use diesel::prelude::*;
 use diesel::PgConnection;
 use snafu::{ensure, ResultExt, Snafu};
@@ -23,6 +23,18 @@ pub enum Error {
     },
 
     UserNotFound,
+    CreateChannel {
+        source: diesel::result::Error,
+    },
+    SetChannelID {
+        source: diesel::result::Error,
+    },
+    EnableChannel {
+        source: diesel::result::Error,
+    },
+    CreateUserWithName {
+        source: diesel::result::Error,
+    },
 }
 
 impl From<user::Error> for Error {
@@ -87,11 +99,26 @@ pub fn by_name<'a>(conn: &PgConnection, name: &'a str) -> Result<Channel> {
 pub fn join<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
     let user = match user::by_name(conn, name)? {
         Some(u) => u,
-        None => return Err(Error::UserNotFound),
+        None => diesel::insert_into(users::table)
+            .values(&NewUserWithName { name })
+            .get_result(conn)
+            .context(CreateUserWithName)?,
     };
 
     if user.channel_id.is_none() {
-        todo!("create channel")
+        let channel_id: i32 = diesel::insert_into(channels::table)
+            .values(&NewChannel {
+                twitch_id: user.twitch_id,
+                enabled: true,
+            })
+            .returning(channels::id)
+            .get_result(conn)
+            .context(CreateChannel)?;
+
+        diesel::update(&user)
+            .set(users::channel_id.eq(channel_id))
+            .execute(conn)
+            .context(SetChannelID)?;
     } else {
         let channel_id = user.channel_id.unwrap();
 
@@ -99,7 +126,7 @@ pub fn join<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
             .filter(channels::id.eq(channel_id))
             .set(channels::enabled.eq(true))
             .execute(conn)
-            .expect("Error enabling channel");
+            .context(EnableChannel)?;
     }
 
     Ok(())

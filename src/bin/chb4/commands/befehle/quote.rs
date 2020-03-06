@@ -8,6 +8,7 @@ use std::convert::TryInto;
 
 pub fn command(context: Arc<Context>) -> Command {
     Command::with_name("quote")
+        .alias("quotes")
         .command(move |args: Vec<String>, msg: Arc<Privmsg<'_>>| {
             let user_id = msg.user_id().unwrap().try_into().unwrap();
 

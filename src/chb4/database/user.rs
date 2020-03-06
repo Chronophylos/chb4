@@ -107,7 +107,7 @@ pub fn by_name<'a>(conn: &PgConnection, name: &'a str) -> Result<Option<User>> {
     trace!("Getting user (name: {})", name);
 
     users::table
-        .limit(1)
+        .filter(users::name.eq(name))
         .get_result(conn)
         .optional()
         .context(GetUserByName { name })

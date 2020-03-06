@@ -25,6 +25,7 @@ config            = { version = "0.10", default-features = false, features = ["t
 diesel            = { version = "1.0", default-features = false, features = ["postgres", "chrono", "r2d2"] }
 diesel_migrations = "1.4"
 flexi_logger      = "0.14"
+futures-executor  = "0.3"
 futures-util      = "0.3"
 hyper             = "0.13"
 lazy_static       = "1.4"

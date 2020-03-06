@@ -108,7 +108,7 @@ impl CommandBuilder {
     pub fn new() -> Self {
         Self {
             name: String::from("<No Name>"),
-            aliases: vec![],
+            aliases: Vec::new(),
             chainable: false,
             whitelisted: false,
             description: String::new(),
@@ -121,6 +121,11 @@ impl CommandBuilder {
             name: name.into(),
             ..Self::new()
         }
+    }
+
+    pub fn alias(mut self, a: String) -> Self {
+        self.aliases.push(a);
+        self
     }
 
     pub fn aliases(mut self, a: Vec<String>) -> Self {

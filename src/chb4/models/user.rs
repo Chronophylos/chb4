@@ -50,6 +50,12 @@ pub struct NewUser<'a> {
     pub last_seen: &'a NaiveDateTime,
 }
 
+#[derive(Insertable)]
+#[table_name = "users"]
+pub struct NewUserWithName<'a> {
+    pub name: &'a str,
+}
+
 #[derive(AsChangeset)]
 #[table_name = "users"]
 pub struct BumpUser<'a> {

@@ -67,7 +67,9 @@ async fn main() {
     let pool = r2d2::Pool::builder().build(manager).unwrap();
     info!("Created Database Pool");
 
-    let context = Arc::new(Context::new(config, pool));
+    let context = Context::new(config, pool);
+
+    let client = context.chat();
 
     let actions = actions::handler::new(context.clone());
     info!("Created Action Handler");
@@ -86,9 +88,6 @@ async fn main() {
         .unwrap();
 
     info!("Connected to {}", twitchchat::TWITCH_IRC_ADDRESS_TLS);
-
-    // make a client. the client is clonable
-    let client = Client::new();
 
     // get a future that resolves when the client is done reading, fails to read/write or is
     // stopped
