@@ -1,35 +1,35 @@
 table! {
+    channel_action_filters (id) {
+        id -> Int4,
+        channel_id -> Int4,
+        name -> Varchar,
+        enable -> Bool,
+    }
+}
+
+table! {
+    channel_command_filters (id) {
+        id -> Int4,
+        channel_id -> Int4,
+        name -> Varchar,
+        enable -> Bool,
+    }
+}
+
+table! {
     channels (id) {
-        id -> Unsigned<Integer>,
-        twitch_id -> Unsigned<Bigint>,
+        id -> Int4,
+        twitch_id -> Int8,
         enabled -> Bool,
         paused -> Bool,
     }
 }
 
 table! {
-    channel_action_filters (id) {
-        id -> Unsigned<Integer>,
-        channel_id -> Unsigned<Integer>,
-        action_name -> Varchar,
-        enable_action -> Bool,
-    }
-}
-
-table! {
-    channel_command_filters (id) {
-        id -> Unsigned<Integer>,
-        channel_id -> Unsigned<Integer>,
-        command_name -> Varchar,
-        enable_command -> Bool,
-    }
-}
-
-table! {
     copypastas (id) {
-        id -> Unsigned<Integer>,
-        creator_id -> Unsigned<Integer>,
-        created -> Datetime,
+        id -> Int4,
+        creator_id -> Int4,
+        created -> Timestamp,
         name -> Varchar,
         message -> Varchar,
     }
@@ -37,7 +37,7 @@ table! {
 
 table! {
     people (id) {
-        id -> Unsigned<Integer>,
+        id -> Int4,
         first_name -> Nullable<Varchar>,
         last_name -> Nullable<Varchar>,
         dob -> Nullable<Date>,
@@ -45,37 +45,47 @@ table! {
 }
 
 table! {
-    users (id) {
-        id -> Unsigned<Integer>,
-        twitch_id -> Nullable<Unsigned<Bigint>>,
-        name -> Varchar,
-        display_name -> Nullable<Varchar>,
-        first_seen -> Nullable<Datetime>,
-        last_seen -> Nullable<Datetime>,
-        permission -> Unsigned<Tinyint>,
-        banned_until -> Nullable<Datetime>,
-        person_id -> Nullable<Unsigned<Integer>>,
-        channel_id -> Nullable<Unsigned<Integer>>,
-        settings_id -> Nullable<Unsigned<Integer>>,
+    quotes (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        created -> Timestamp,
+        author -> Varchar,
+        authored -> Varchar,
+        message -> Varchar,
     }
 }
 
 table! {
     user_settings (id) {
-        id -> Unsigned<Integer>,
+        id -> Int4,
         birthdays -> Bool,
     }
 }
 
 table! {
+    users (id) {
+        id -> Int4,
+        twitch_id -> Nullable<Int8>,
+        name -> Varchar,
+        display_name -> Nullable<Varchar>,
+        first_seen -> Nullable<Timestamp>,
+        last_seen -> Nullable<Timestamp>,
+        permission -> Int2,
+        banned_until -> Nullable<Timestamp>,
+        person_id -> Nullable<Int4>,
+        channel_id -> Nullable<Int4>,
+        settings_id -> Nullable<Int4>,
+    }
+}
+
+table! {
     voicemails (id) {
-        id -> Unsigned<Integer>,
-        creator_id -> Unsigned<Integer>,
-        channel_id -> Unsigned<Integer>,
-        receiver_id -> Unsigned<Integer>,
-        created -> Datetime,
-        scheduled -> Nullable<Datetime>,
-        active -> Bool,
+        id -> Int4,
+        creator_id -> Int4,
+        receiver_id -> Int4,
+        created -> Timestamp,
+        scheduled -> Nullable<Timestamp>,
+        active -> Nullable<Bool>,
         message -> Varchar,
     }
 }
@@ -83,18 +93,18 @@ table! {
 joinable!(channel_action_filters -> channels (channel_id));
 joinable!(channel_command_filters -> channels (channel_id));
 joinable!(copypastas -> users (creator_id));
+joinable!(quotes -> users (creator_id));
 joinable!(users -> channels (channel_id));
-joinable!(users -> people (person_id));
 joinable!(users -> user_settings (settings_id));
-joinable!(voicemails -> channels (channel_id));
 
 allow_tables_to_appear_in_same_query!(
-    channels,
     channel_action_filters,
     channel_command_filters,
+    channels,
     copypastas,
     people,
-    users,
+    quotes,
     user_settings,
+    users,
     voicemails,
 );

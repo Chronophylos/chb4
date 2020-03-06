@@ -166,3 +166,12 @@ pub enum CommandResult {
     Chainable(Vec<String>),
     Error(String),
 }
+
+impl<T> From<T> for CommandResult
+where
+    T: std::error::Error,
+{
+    fn from(error: T) -> Self {
+        Self::Error(error.to_string())
+    }
+}

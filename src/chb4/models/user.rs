@@ -5,7 +5,7 @@ use chrono::prelude::*;
 #[derive(Queryable, Identifiable)]
 #[table_name = "people"]
 pub struct Person {
-    pub id: u32,
+    pub id: i32,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub dob: Option<NaiveDateTime>,
@@ -17,18 +17,18 @@ pub struct Person {
 #[belongs_to(UserSettings, foreign_key = "settings_id")]
 #[table_name = "users"]
 pub struct User {
-    pub id: u32,
-    pub twitch_id: Option<u64>,
+    pub id: i32,
+    pub twitch_id: Option<i64>,
     pub name: String,
     pub display_name: Option<String>,
     pub first_seen: Option<NaiveDateTime>,
     pub last_seen: Option<NaiveDateTime>,
-    pub permission: u8,
+    pub permission: i16,
     pub banned_until: Option<NaiveDateTime>,
 
-    pub person_id: Option<u32>,
-    pub channel_id: Option<u32>,
-    pub settings_id: Option<u32>,
+    pub person_id: Option<i32>,
+    pub channel_id: Option<i32>,
+    pub settings_id: Option<i32>,
 }
 
 impl User {
@@ -43,7 +43,7 @@ impl User {
 #[derive(Insertable)]
 #[table_name = "users"]
 pub struct NewUser<'a> {
-    pub twitch_id: u64,
+    pub twitch_id: i64,
     pub name: &'a str,
     pub display_name: &'a str,
     pub first_seen: &'a NaiveDateTime,
@@ -61,6 +61,6 @@ pub struct BumpUser<'a> {
 #[derive(Queryable, Identifiable, Associations)]
 #[table_name = "user_settings"]
 pub struct UserSettings {
-    pub id: u32,
+    pub id: i32,
     pub birthdays: bool,
 }

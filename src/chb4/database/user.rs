@@ -2,13 +2,12 @@ use crate::models::{BumpUser, NewUser, User};
 use crate::schema::users;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use diesel::MysqlConnection;
 use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     GetUserByTwitchID {
-        twitch_id: u64,
+        twitch_id: i64,
         source: diesel::result::Error,
     },
 
@@ -19,7 +18,12 @@ pub enum Error {
 
     InsertUser {
         name: String,
-        twitch_id: u64,
+        twitch_id: i64,
+        source: diesel::result::Error,
+    },
+
+    UpdateUser {
+        twitch_id: i64,
         source: diesel::result::Error,
     },
 }
@@ -27,12 +31,12 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn create<'a>(
-    conn: &MysqlConnection,
-    twitch_id: u64,
+    conn: &PgConnection,
+    twitch_id: i64,
     name: &str,
     display_name: &str,
     now: &DateTime<Local>,
-) -> Result<bool> {
+) -> Result<User> {
     trace!(
         "Creating new user (twitch_id: {}, name: {})",
         twitch_id,
@@ -41,7 +45,7 @@ pub fn create<'a>(
 
     let now = now.naive_utc();
 
-    let inserted = diesel::insert_into(users::table)
+    let user = diesel::insert_into(users::table)
         .values(&NewUser {
             twitch_id,
             name,
@@ -49,62 +53,62 @@ pub fn create<'a>(
             first_seen: &now,
             last_seen: &now,
         })
-        .execute(conn)
+        .get_result(conn)
         .context(InsertUser { name, twitch_id })?;
 
-    Ok(inserted == 1)
+    Ok(user)
 }
 
 pub fn bump<'a>(
-    conn: &MysqlConnection,
-    twitch_id: u64,
+    conn: &PgConnection,
+    twitch_id: i64,
     name: &'a str,
     display_name: &'a str,
     now: &DateTime<Local>,
 ) -> Result<User> {
     debug!("Bumping user (twitch_id: {})", twitch_id);
 
-    let user_exits: i64 = users::table
-        .filter(users::twitch_id.eq(twitch_id))
-        .count()
-        .get_result(conn)
-        .context(GetUserByTwitchID { twitch_id })?;
+    let user = self::by_twitch_id(conn, twitch_id)?;
 
-    if user_exits == 1 {
+    if user.is_some() {
         trace!("User found -> bumping user");
-        diesel::update(users::table)
+
+        let user = diesel::update(users::table)
             .filter(users::twitch_id.eq(twitch_id))
             .set(&BumpUser {
                 name,
                 display_name,
                 last_seen: &now.naive_utc(),
             })
-            .execute(conn)
-            .expect("Error bumping user");
+            .get_result(conn)
+            .context(UpdateUser { twitch_id })?;
+
+        return Ok(user);
     } else {
         trace!("User not found -> creating new user");
-        create(&conn, twitch_id, name, display_name, now)?;
-    }
 
-    Ok(by_twitch_id(conn, twitch_id)?)
+        let user = create(&conn, twitch_id, name, display_name, now)?;
+
+        return Ok(user);
+    }
 }
 
-pub fn by_twitch_id<'a>(conn: &MysqlConnection, twitch_id: u64) -> Result<User> {
+pub fn by_twitch_id<'a>(conn: &PgConnection, twitch_id: i64) -> Result<Option<User>> {
     trace!("Getting user (twitch_id: {})", twitch_id);
 
     users::table
         .filter(users::twitch_id.eq(twitch_id))
-        .limit(1)
-        .get_result(conn)
+        .get_result::<User>(conn)
+        .optional()
         .context(GetUserByTwitchID { twitch_id })
 }
 
-pub fn by_name<'a>(conn: &MysqlConnection, name: &'a str) -> Result<User> {
+pub fn by_name<'a>(conn: &PgConnection, name: &'a str) -> Result<Option<User>> {
     trace!("Getting user (name: {})", name);
 
     users::table
-        .filter(users::name.eq(name))
         .limit(1)
         .get_result(conn)
+        .optional()
         .context(GetUserByName { name })
 }

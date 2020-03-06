@@ -1,13 +1,12 @@
-SET FOREIGN_KEY_CHECKS=0;
-
 DROP TABLE IF EXISTS
     people,
     users,
     bans,
     channels,
     channel_action_filters,
+    channel_command_filters,
     voicemails,
     copypastas,
-    user_settings;
-
-SET FOREIGN_KEY_CHECKS=1;
+    quotes,
+    user_settings
+    CASCADE;

@@ -14,8 +14,10 @@
 - [ ] Add Action System
     - [ ] Migrate Actions
         - [ ] Add Voicemail Action
-- [ ] Add description to all actions and commands
-* use https://customapi.aidenwallis.co.uk to make my life easier
+- [x] Add description to all actions and commands
+- [ ] AFK commands and actions
+
+use https://customapi.aidenwallis.co.uk to make my life easier
 
 ## Command System
 * Only listen to messages with a prefix

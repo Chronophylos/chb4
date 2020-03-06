@@ -1,8 +1,8 @@
 use config::Config;
+use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
-use diesel::MysqlConnection;
 
-type Pool = diesel::r2d2::Pool<ConnectionManager<MysqlConnection>>;
+type Pool = diesel::r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Clone)]
 pub struct Context {

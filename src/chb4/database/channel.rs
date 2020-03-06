@@ -2,14 +2,14 @@ use super::*;
 use crate::models::{Channel, User};
 use crate::schema::channels;
 use diesel::prelude::*;
-use diesel::MysqlConnection;
+use diesel::PgConnection;
 use snafu::{ensure, ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Channel {} was not found", channel_id))]
     GetChannel {
-        channel_id: u32,
+        channel_id: i32,
         source: diesel::result::Error,
     },
 
@@ -21,6 +21,8 @@ pub enum Error {
     UserError {
         source: user::Error,
     },
+
+    UserNotFound,
 }
 
 impl From<user::Error> for Error {
@@ -32,8 +34,11 @@ impl From<user::Error> for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 // todo return result instead
-pub fn by_name<'a>(conn: &MysqlConnection, name: &'a str) -> Result<Channel> {
-    let user = user::by_name(conn, name)?;
+pub fn by_name<'a>(conn: &PgConnection, name: &'a str) -> Result<Channel> {
+    let user = match user::by_name(conn, name)? {
+        Some(u) => u,
+        None => return Err(Error::UserNotFound),
+    };
 
     ensure!(
         user.channel_id.is_some(),
@@ -79,8 +84,11 @@ pub fn by_name<'a>(conn: &MysqlConnection, name: &'a str) -> Result<Channel> {
 ///                     '-------------------------'             | and set enabled to `true` |
 ///                                                             '---------------------------'
 /// ```
-pub fn join<'a>(conn: &MysqlConnection, name: &'a str) -> Result<()> {
-    let user = user::by_name(conn, name)?;
+pub fn join<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
+    let user = match user::by_name(conn, name)? {
+        Some(u) => u,
+        None => return Err(Error::UserNotFound),
+    };
 
     if user.channel_id.is_none() {
         todo!("create channel")
@@ -97,7 +105,7 @@ pub fn join<'a>(conn: &MysqlConnection, name: &'a str) -> Result<()> {
     Ok(())
 }
 
-pub fn leave<'a>(conn: &MysqlConnection, name: &'a str) -> Result<()> {
+pub fn leave<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
     let channel = by_name(conn, name)?;
 
     diesel::update(&channel)
@@ -108,7 +116,7 @@ pub fn leave<'a>(conn: &MysqlConnection, name: &'a str) -> Result<()> {
     Ok(())
 }
 
-pub fn all_enabled(conn: &MysqlConnection) -> Vec<String> {
+pub fn all_enabled(conn: &PgConnection) -> Vec<String> {
     let channels = channels::table
         .filter(channels::enabled.eq(true))
         .load::<Channel>(conn)

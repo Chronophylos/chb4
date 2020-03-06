@@ -4,35 +4,12 @@ use chb4::database;
 use chb4::helpers::Permission;
 
 pub fn command(context: Arc<Context>) -> Command {
-    fn stop() -> CommandResult {
-        use std::process;
-        process::exit(0);
-    }
-
-    fn leave(context: Arc<Context>, args: Vec<String>) -> CommandResult {
-        let channel = args.get(0).unwrap();
-
-        match database::channel::leave(&context.pool().get().unwrap(), &channel) {
-            Err(e) => CommandResult::Error(format!("{:?}", e)),
-            Ok(_) => CommandResult::Message(format!("Left {}", channel).to_string()),
-        }
-    }
-
-    fn join(context: Arc<Context>, args: Vec<String>) -> CommandResult {
-        let channel = args.get(0).unwrap();
-
-        match database::channel::join(&context.pool().get().unwrap(), &channel) {
-            Err(e) => CommandResult::Error(format!("{:?}", e)),
-            Ok(_) => CommandResult::Message(format!("Joined {}", channel).to_string()),
-        }
-    }
-
     Command::with_name("admin")
         .command(move |args: Vec<String>, msg: Arc<Privmsg<'_>>| {
             let permission = Permission::from(context.clone(), msg).unwrap();
 
             if permission != Permission::Owner {
-                debug!("Permission not high enough");
+                debug!("Permission not high enough (is {:?})", permission);
                 return CommandResult::NoMessage;
             }
 
@@ -49,11 +26,34 @@ pub fn command(context: Arc<Context>) -> Command {
 
 USAGE: admin SUBCOMMAND
 
-SUB COMMANDS:
+SUBCOMMANDS:
     stop - stop the bot
     leave CHANNEL - leave a channel
     join CHANNEL - join a channel
-            ",
+",
         )
         .done()
+}
+
+fn stop() -> CommandResult {
+    use std::process;
+    process::exit(0);
+}
+
+fn leave(context: Arc<Context>, args: Vec<String>) -> CommandResult {
+    let channel = args.get(0).unwrap();
+
+    match database::channel::leave(&context.pool().get().unwrap(), &channel) {
+        Err(e) => CommandResult::Error(format!("{:?}", e)),
+        Ok(_) => CommandResult::Message(format!("Left {}", channel).to_string()),
+    }
+}
+
+fn join(context: Arc<Context>, args: Vec<String>) -> CommandResult {
+    let channel = args.get(0).unwrap();
+
+    match database::channel::join(&context.pool().get().unwrap(), &channel) {
+        Err(e) => CommandResult::Error(format!("{:?}", e)),
+        Ok(_) => CommandResult::Message(format!("Joined {}", channel).to_string()),
+    }
 }

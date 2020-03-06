@@ -8,6 +8,7 @@ mod prelude;
 mod admin;
 mod color;
 //mod font;
+mod quote;
 mod test;
 mod voicemail;
 
@@ -16,6 +17,7 @@ pub fn all(context: Arc<Context>) -> Vec<Command> {
         admin::command(context.clone()),
         color::command(),
         //font::command(),
+        quote::command(context.clone()),
         test::command(),
         //voicemail::command(context.clone()),
     ]

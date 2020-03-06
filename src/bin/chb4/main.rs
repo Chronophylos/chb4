@@ -7,6 +7,8 @@ extern crate bytes;
 extern crate futures_util;
 extern crate regex;
 extern crate serde;
+#[macro_use]
+extern crate lazy_static;
 
 mod actions;
 mod commands;
@@ -17,12 +19,13 @@ use chb4::database;
 use chrono::prelude::*;
 use config::{Config, Environment, File, FileFormat};
 use diesel::r2d2;
-use diesel::MysqlConnection;
+use diesel::PgConnection;
 use std::env;
 use std::sync::Arc;
 use twitchchat::{client::Error, client::Status, events, Client, Secure};
 // so .next() can be used on the EventStream
 // futures::stream::StreamExt will also work
+use std::convert::TryInto;
 use tokio::stream::StreamExt as _;
 
 /// The main is currently full of bloat. The plan is to move everything into their own module
@@ -60,7 +63,7 @@ async fn main() {
     info!("Loaded config");
 
     let manager =
-        r2d2::ConnectionManager::<MysqlConnection>::new(config.get_str("database.url").unwrap());
+        r2d2::ConnectionManager::<PgConnection>::new(config.get_str("database.url").unwrap());
     let pool = r2d2::Pool::builder().build(manager).unwrap();
     info!("Created Database Pool");
 
@@ -116,7 +119,7 @@ async fn main() {
                 }
 
                 {
-                    let user_id = msg.user_id().unwrap();
+                    let user_id = msg.user_id().unwrap().try_into().unwrap();
                     let name = msg.name.to_owned();
                     let display_name = msg.display_name().unwrap();
                     let now = Local::now();
