@@ -32,7 +32,7 @@ impl Command {
     }
 
     pub fn execute(&self, args: Vec<String>, msg: Arc<Privmsg<'_>>) -> CommandResult {
-        trace!("Executing command {} with args {:?}", self.name, args);
+        info!("Executing command {} with args {:?}", self.name, args);
         (self.command)(args, msg)
     }
 }
