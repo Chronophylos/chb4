@@ -7,9 +7,20 @@ use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
+    #[snafu(display("Inserting quote: {}", source))]
     InsertQuote { source: diesel::result::Error },
-    GetQuoteByID { source: diesel::result::Error },
-    RemoveQuote { source: diesel::result::Error },
+
+    #[snafu(display("Getting quote (id: {}): {}", id, source))]
+    GetQuoteByID {
+        id: i32,
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Removing quote (id: {}): {}", id, source))]
+    RemoveQuote {
+        id: i32,
+        source: diesel::result::Error,
+    },
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -44,7 +55,7 @@ pub fn by_id(conn: &PgConnection, id: i32) -> Result<Option<Quote>> {
         .filter(quotes::id.eq(id))
         .get_result::<Quote>(conn)
         .optional()
-        .context(GetQuoteByID)
+        .context(GetQuoteByID { id })
 }
 
 pub fn remove(conn: &PgConnection, id: i32) -> Result<()> {
@@ -53,7 +64,7 @@ pub fn remove(conn: &PgConnection, id: i32) -> Result<()> {
     diesel::delete(quotes::table)
         .filter(quotes::id.eq(id))
         .execute(conn)
-        .context(RemoveQuote)?;
+        .context(RemoveQuote { id })?;
 
     Ok(())
 }

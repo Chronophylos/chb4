@@ -3,37 +3,65 @@ use crate::models::{Channel, NewChannel, NewUserWithName, User};
 use crate::schema::*;
 use diesel::prelude::*;
 use diesel::PgConnection;
-use snafu::{ensure, ResultExt, Snafu};
+use snafu::{OptionExt, ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Channel {} was not found", channel_id))]
+    #[snafu(display("Getting channel (channel_id: {}): {}", channel_id, source))]
     GetChannel {
         channel_id: i32,
         source: diesel::result::Error,
     },
 
-    #[snafu(display("User {} has no channel entry", user))]
+    #[snafu(display("User has no channel entry (name: {})", name))]
     UserHasNoChannel {
-        user: String,
+        name: String,
+    },
+
+    #[snafu(display("User not found (name: {})", name))]
+    UserNotFound {
+        name: String,
+    },
+
+    #[snafu(display("Inserting channel: {}", source))]
+    CreateChannel {
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Setting channel_id of user (id: {}): {}", id, source))]
+    SetChannelID {
+        id: i32,
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Enabling channel: {}", source))]
+    EnableChannel {
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Disabling channel: {}", source))]
+    DisableChannel {
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Creating new user (name: {}): {}", name, source))]
+    CreateUserWithName {
+        name: String,
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Getting enabled channels: {}", source))]
+    GetEnabledChannels {
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Getting users owning channels: {}", source))]
+    GetAssociatedUsers {
+        source: diesel::result::Error,
     },
 
     UserError {
         source: user::Error,
-    },
-
-    UserNotFound,
-    CreateChannel {
-        source: diesel::result::Error,
-    },
-    SetChannelID {
-        source: diesel::result::Error,
-    },
-    EnableChannel {
-        source: diesel::result::Error,
-    },
-    CreateUserWithName {
-        source: diesel::result::Error,
     },
 }
 
@@ -47,17 +75,14 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 // todo return result instead
 pub fn by_name<'a>(conn: &PgConnection, name: &'a str) -> Result<Channel> {
-    let user = match user::by_name(conn, name)? {
-        Some(u) => u,
-        None => return Err(Error::UserNotFound),
-    };
+    let user: Option<User> = user::by_name(conn, name)?;
+    let user: User = user.context(UserNotFound {
+        name: name.to_owned(),
+    })?;
 
-    ensure!(
-        user.channel_id.is_some(),
-        UserHasNoChannel { user: user.name }
-    );
-
-    let channel_id = user.channel_id.unwrap();
+    let channel_id = user
+        .channel_id
+        .context(UserHasNoChannel { name: user.name })?;
 
     let channel = channels::table
         .filter(channels::id.eq(channel_id))
@@ -102,7 +127,7 @@ pub fn join<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
         None => diesel::insert_into(users::table)
             .values(&NewUserWithName { name })
             .get_result(conn)
-            .context(CreateUserWithName)?,
+            .context(CreateUserWithName { name })?,
     };
 
     if user.channel_id.is_none() {
@@ -118,7 +143,7 @@ pub fn join<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
         diesel::update(&user)
             .set(users::channel_id.eq(channel_id))
             .execute(conn)
-            .context(SetChannelID)?;
+            .context(SetChannelID { id: user.id })?;
     } else {
         let channel_id = user.channel_id.unwrap();
 
@@ -138,25 +163,25 @@ pub fn leave<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
     diesel::update(&channel)
         .set(channels::enabled.eq(false))
         .execute(conn)
-        .expect("Error disabling channel");
+        .context(DisableChannel)?;
 
     Ok(())
 }
 
-pub fn all_enabled(conn: &PgConnection) -> Vec<String> {
+pub fn all_enabled(conn: &PgConnection) -> Result<Vec<String>> {
     let channels = channels::table
         .filter(channels::enabled.eq(true))
         .load::<Channel>(conn)
-        .unwrap();
+        .context(GetEnabledChannels)?;
 
     let users = User::belonging_to(&channels)
         .load::<User>(conn)
-        .unwrap()
+        .context(GetAssociatedUsers)?
         .grouped_by(&channels);
 
-    channels
+    Ok(channels
         .into_iter()
         .zip(users)
         .map(|(_, u)| u.get(0).unwrap().name.clone())
-        .collect()
+        .collect())
 }

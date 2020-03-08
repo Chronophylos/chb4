@@ -6,22 +6,26 @@ use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
+    #[snafu(display("Getting user (twitch_id: {}): {}", twitch_id, source))]
     GetUserByTwitchID {
         twitch_id: i64,
         source: diesel::result::Error,
     },
 
+    #[snafu(display("Getting user (name: {}): {}", name, source))]
     GetUserByName {
         name: String,
         source: diesel::result::Error,
     },
 
+    #[snafu(display("Insert user (name: {}, id: {}): {}", name, twitch_id, source))]
     InsertUser {
         name: String,
         twitch_id: i64,
         source: diesel::result::Error,
     },
 
+    #[snafu(display("Updating user (twitch_id: {}): {}", twitch_id, source))]
     UpdateUser {
         twitch_id: i64,
         source: diesel::result::Error,
@@ -59,6 +63,7 @@ pub fn create<'a>(
     Ok(user)
 }
 
+// TODO: check if the logic can be offloaded to the database
 pub fn bump<'a>(
     conn: &PgConnection,
     twitch_id: i64,
@@ -68,13 +73,12 @@ pub fn bump<'a>(
 ) -> Result<User> {
     debug!("Bumping user (twitch_id: {})", twitch_id);
 
+    // get the user from the database
     let user = self::by_twitch_id(conn, twitch_id)?;
 
     if user.is_some() {
-        trace!("User found -> bumping user");
-
-        let user = diesel::update(users::table)
-            .filter(users::twitch_id.eq(twitch_id))
+        // user exists
+        let user = diesel::update(&user.unwrap())
             .set(&BumpUser {
                 name,
                 display_name,
@@ -83,13 +87,12 @@ pub fn bump<'a>(
             .get_result(conn)
             .context(UpdateUser { twitch_id })?;
 
-        return Ok(user);
+        Ok(user)
     } else {
-        trace!("User not found -> creating new user");
-
+        // user doesnt exist
         let user = create(&conn, twitch_id, name, display_name, now)?;
 
-        return Ok(user);
+        Ok(user)
     }
 }
 

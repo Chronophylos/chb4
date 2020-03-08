@@ -78,6 +78,7 @@ async fn main() {
 
     info!("Created Command Handler");
 
+    // get nick and password from config
     let nick = context.config().get_str("twitch.nick").unwrap();
     let pass = context.config().get_str("twitch.pass").unwrap();
     let channel = nick.clone();
@@ -93,8 +94,9 @@ async fn main() {
     // stopped
     let done = client.run(read, write);
 
-    // subscribe to an event stream
-
+    // Subscribe to privmsg event stream.
+    // Here everything happens. Like checking for commands, actions and bumping the user in the
+    // database
     {
         // clone nick so we can use it here
         let nick = nick.clone();
@@ -113,11 +115,13 @@ async fn main() {
 
                 if msg.name == nick {
                     // message must be sent by the bot -> ignore it
-                    trace!("dropping PRIVMSG since it was sent by the bot");
+                    trace!("ignoring PRIVMSG since it was sent by the bot");
                     break;
                 }
 
+                // bump the user in database
                 {
+                    // todo check all of the unwraps for errors
                     let user_id = msg.user_id().unwrap().try_into().unwrap();
                     let name = msg.name.to_owned();
                     let display_name = msg.display_name().unwrap();
@@ -144,6 +148,8 @@ async fn main() {
                 }
 
                 {
+                    // get a writer from the bot
+                    // TODO: check if this can be done once per handler
                     let writer = bot_client.writer();
 
                     actions
@@ -157,7 +163,8 @@ async fn main() {
         });
     }
 
-    // for join (when a user joins a channel)
+    // Subscribe to join event stream.
+    // BUG: For some reason this spams Joined when joining channels from the database
     {
         let mut join = client.dispatcher().await.subscribe::<events::Join>();
 
@@ -181,15 +188,18 @@ async fn main() {
         });
     }
 
+    // Join channels. First join the bots channel, then get all enabled channels from the database
+    // and join them.
     {
         let mut handles = Vec::new();
-        context.join_channel(channel);
+        context.join_channel(channel).await;
 
-        for channel in database::channel::all_enabled(&context.pool().get().unwrap()) {
-            let handle = join_channel(client.clone(), channel);
+        for channel in database::channel::all_enabled(&context.pool().get().unwrap()).unwrap() {
+            let handle = context.join_channel(channel);
             handles.push(handle);
         }
 
+        // Wait until all channels are joined
         for handle in handles.drain(..) {
             handle.await;
         }
@@ -215,23 +225,4 @@ async fn main() {
     // another way would be to clear all subscriptions
     // clearing the subscriptions would close each event stream
     client.dispatcher().await.clear_subscriptions_all();
-}
-
-async fn join_channel(client: Client, channel: String) {
-    info!("Joining channel {}", &channel);
-
-    // get a clonable writer from the client
-    // join a channel, methods on writer return false if the client is disconnected
-    if let Err(err) = client.writer().join(&channel).await {
-        match err {
-            Error::InvalidChannel(..) => {
-                error!("could not join channel because the name is empty");
-            }
-            _ => {
-                error!("got an error, but I don't know what to do: {}", err);
-                // we'll get an error if we try to write to a disconnected client.
-                // if this happens, you should shutdown your tasks
-            }
-        }
-    }
 }

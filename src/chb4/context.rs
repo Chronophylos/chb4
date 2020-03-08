@@ -35,24 +35,31 @@ impl Context {
         &self.chat
     }
 
-    pub fn join_channel(&self, channel: String) {
-        let join = async {
-            if let Err(err) = self.chat.writer().join(&channel).await {
-                match err {
-                    twitchchat::client::Error::InvalidChannel(..) => {
-                        error!("could not join channel because the name is empty");
-                    }
-                    _ => {
-                        error!("got an error, but I don't know what to do: {}", err);
-                    }
-                }
-            }
-        };
-        block_on(join);
+    /// Join channel blocking.
+    pub fn join_channel_sync(&self, channel: String) {
+        block_on(self.join_channel(channel));
     }
 
-    pub fn leave_channel(&self, channel: String) {
-        info!("Joining {}", channel);
+    /// Join channel non-blocking.
+    pub async fn join_channel(&self, channel: String) {
+        info!("Joining channel {}", channel);
+
+        if let Err(err) = self.chat.writer().join(&channel).await {
+            match err {
+                twitchchat::client::Error::InvalidChannel(..) => {
+                    error!("could not join channel because the name is empty");
+                }
+                _ => {
+                    error!("got an error, but I don't know what to do: {}", err);
+                }
+            }
+        }
+    }
+
+    /// Leave channel blocking.
+    pub fn leave_channel_sync(&self, channel: String) {
+        info!("Leaving channel {}", channel);
+
         let leave = async {
             if let Err(err) = self.chat.writer().part(&channel).await {
                 match err {
@@ -65,6 +72,7 @@ impl Context {
                 }
             }
         };
+
         block_on(leave);
     }
 }
