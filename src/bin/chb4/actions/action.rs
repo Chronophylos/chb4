@@ -5,17 +5,21 @@ use twitchchat::messages::Privmsg;
 
 pub type ActionFunction = Box<dyn Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static>;
 
+// I want trail aliases PepeHands
+// pub type ActionFunctionImpl =
+//     impl Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static;
+
 pub struct Action {
-    name: String,
+    name: &'static str,
     regex: Regex,
     whitelisted: bool,
-    description: String,
+    description: &'static str,
     command: ActionFunction,
 }
 
 impl Action {
-    pub fn name(&self) -> String {
-        self.name.clone()
+    pub fn name(&self) -> &str {
+        self.name
     }
 
     pub fn is_match(&self, text: &str) -> bool {
@@ -27,13 +31,14 @@ impl Action {
     }
 
     pub fn execute(&self, msg: Arc<Privmsg<'_>>) -> ActionResult {
+        info!("Executing action {}", self.name);
         (self.command)(msg)
     }
 }
 
 /// Shadow constructor for `ActionBuilder`
 impl Action {
-    pub fn with_name<S: Into<String>>(name: S) -> ActionBuilder {
+    pub fn with_name<'a>(name: &'static str) -> ActionBuilder {
         ActionBuilder::with_name(name)
     }
 }
@@ -50,11 +55,11 @@ impl fmt::Debug for Action {
 
 impl chb4::Documentation for Action {
     fn name(&self) -> String {
-        self.name()
+        self.name().to_owned()
     }
 
     fn description(&self) -> String {
-        self.description.clone()
+        self.description.to_owned()
     }
 
     fn aliases(&self) -> Option<String> {
@@ -74,21 +79,22 @@ impl chb4::Documentation for Action {
     }
 }
 
+#[derive(Default)]
 pub struct ActionBuilder {
-    name: String,
-    regex: Regex,
-    whitelisted: bool,
-    description: String,
-    command: ActionFunction,
+    name: Option<&'static str>,
+    regex: Option<Regex>,
+    whitelisted: Option<bool>,
+    description: Option<&'static str>,
+    command: Option<ActionFunction>,
 }
 impl Into<Action> for ActionBuilder {
     fn into(self) -> Action {
         Action {
-            name: self.name,
-            regex: self.regex,
-            whitelisted: self.whitelisted,
-            description: self.description,
-            command: self.command,
+            name: self.name.unwrap(),
+            regex: self.regex.unwrap(),
+            whitelisted: self.whitelisted.unwrap_or(false),
+            description: self.description.unwrap_or("description missing"),
+            command: self.command.unwrap(),
         }
     }
 }
@@ -96,40 +102,31 @@ impl Into<Action> for ActionBuilder {
 /// Builder functions
 impl ActionBuilder {
     pub fn new() -> Self {
-        Self {
-            name: String::from("<No Name>"),
-            #[allow(clippy::trivial_regex)]
-            regex: Regex::new("").unwrap(),
-            whitelisted: false,
-            description: String::new(),
-            command: Box::new(noop),
-        }
+        Self::default()
     }
 
-    pub fn with_name<S: Into<String>>(name: S) -> Self {
+    pub fn with_name(name: &'static str) -> Self {
         Self {
-            name: name.into(),
+            name: Some(name),
             ..Self::new()
         }
     }
 
     pub fn regex(mut self, regex: &str) -> Self {
-        self.regex = Regex::new(regex).unwrap_or_else(|_| {
-            panic!(
-                "Could not parse regex ({}) when building action {}",
-                regex, self.name,
-            )
-        });
+        self.regex =
+            Some(Regex::new(regex).unwrap_or_else(|_| {
+                panic!("Could not parse regex ({}) when building action", regex)
+            }));
         self
     }
 
     pub fn whitelisted(mut self) -> Self {
-        self.whitelisted = true;
+        self.whitelisted = Some(true);
         self
     }
 
-    pub fn description<S: Into<String>>(mut self, text: S) -> Self {
-        self.description = text.into();
+    pub fn description(mut self, text: &'static str) -> Self {
+        self.description = Some(text);
         self
     }
 
@@ -137,17 +134,13 @@ impl ActionBuilder {
         mut self,
         f: impl Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static,
     ) -> Self {
-        self.command = Box::new(f);
+        self.command = Some(Box::new(f));
         self
     }
 
     pub fn done(self) -> Action {
         Action { ..self.into() }
     }
-}
-
-fn noop(_msg: Arc<Privmsg<'_>>) -> ActionResult {
-    panic!("Missing command when building Action")
 }
 
 pub enum ActionResult {

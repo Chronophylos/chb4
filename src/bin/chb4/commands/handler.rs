@@ -12,7 +12,6 @@ pub struct CommandHandler {
     /// The prefix to use when checking for commands in a message.
     prefix: char,
 
-    #[allow(dead_code)]
     context: Arc<Context>,
 }
 
@@ -32,11 +31,12 @@ impl CommandHandler {
     fn add(&mut self, command: Command) {
         // insert aliases into alias map
         for alias in command.aliases() {
-            self.aliases.insert(alias.to_owned(), command.name());
+            self.aliases
+                .insert(alias.to_owned(), command.name().to_owned());
         }
 
         // insert command into command map
-        self.commands.insert(command.name(), command);
+        self.commands.insert(command.name().to_owned(), command);
     }
 
     fn add_all(&mut self, commands: Vec<Command>) {

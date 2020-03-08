@@ -2,6 +2,7 @@ use super::prelude::*;
 
 pub fn command() -> Command {
     Command::with_name("test")
+        .aliases(vec!["tset", "tets"])
         .command(|args, _msg| {
             if args.is_empty() {
                 CommandResult::Message(String::from("Test what?"))

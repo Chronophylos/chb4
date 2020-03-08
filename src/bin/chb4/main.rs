@@ -21,7 +21,6 @@ use config::{Config, Environment, File, FileFormat};
 use diesel::r2d2;
 use diesel::PgConnection;
 use std::env;
-use std::sync::Arc;
 use twitchchat::{client::Error, client::Status, events, Client, Secure};
 // so .next() can be used on the EventStream
 // futures::stream::StreamExt will also work

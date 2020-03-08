@@ -5,21 +5,25 @@ use twitchchat::messages::Privmsg;
 pub type CommandFunction =
     Box<dyn Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static>;
 
+// I want trait aliases PepeHands
+// pub type CommandFunctionImpl =
+//     impl Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static;
+
 pub struct Command {
-    name: String,
-    aliases: Vec<String>,
+    name: &'static str,
+    aliases: Vec<&'static str>,
     chainable: bool,
     whitelisted: bool,
-    description: String,
+    description: &'static str,
     command: CommandFunction,
 }
 
 impl Command {
-    pub fn name(&self) -> String {
-        self.name.clone()
+    pub fn name(&self) -> &str {
+        self.name
     }
 
-    pub fn aliases(&self) -> Vec<String> {
+    pub fn aliases(&self) -> Vec<&str> {
         self.aliases.clone()
     }
 
@@ -39,7 +43,7 @@ impl Command {
 
 /// Shadow constructor for `CommandBuilder`
 impl Command {
-    pub fn with_name<S: Into<String>>(name: S) -> CommandBuilder {
+    pub fn with_name(name: &'static str) -> CommandBuilder {
         CommandBuilder::with_name(name)
     }
 }
@@ -57,11 +61,11 @@ impl fmt::Debug for Command {
 
 impl chb4::Documentation for Command {
     fn name(&self) -> String {
-        self.name()
+        self.name.to_owned()
     }
 
     fn description(&self) -> String {
-        self.description.clone()
+        self.description.to_owned()
     }
 
     fn aliases(&self) -> Option<String> {
@@ -81,24 +85,25 @@ impl chb4::Documentation for Command {
     }
 }
 
+#[derive(Default)]
 pub struct CommandBuilder {
-    name: String,
-    aliases: Vec<String>,
-    chainable: bool,
-    whitelisted: bool,
-    description: String,
-    command: CommandFunction,
+    name: Option<&'static str>,
+    aliases: Option<Vec<&'static str>>,
+    chainable: Option<bool>,
+    whitelisted: Option<bool>,
+    description: Option<&'static str>,
+    command: Option<CommandFunction>,
 }
 
 impl Into<Command> for CommandBuilder {
     fn into(self) -> Command {
         Command {
-            name: self.name,
-            aliases: self.aliases,
-            chainable: self.chainable,
-            whitelisted: self.whitelisted,
-            description: self.description,
-            command: self.command,
+            name: self.name.unwrap(),
+            aliases: self.aliases.unwrap(),
+            chainable: self.chainable.unwrap_or(false),
+            whitelisted: self.whitelisted.unwrap_or(false),
+            description: self.description.unwrap_or("description missing"),
+            command: self.command.unwrap(),
         }
     }
 }
@@ -106,45 +111,52 @@ impl Into<Command> for CommandBuilder {
 /// Builder functions
 impl CommandBuilder {
     pub fn new() -> Self {
-        Self {
-            name: String::from("<No Name>"),
-            aliases: Vec::new(),
-            chainable: false,
-            whitelisted: false,
-            description: String::new(),
-            command: Box::new(noop),
-        }
+        Self::default()
     }
 
-    pub fn with_name<S: Into<String>>(name: S) -> Self {
+    pub fn with_name(name: &'static str) -> Self {
         Self {
-            name: name.into(),
+            name: Some(name),
             ..Self::new()
         }
     }
 
-    pub fn alias(mut self, a: String) -> Self {
-        self.aliases.push(a);
+    pub fn alias(mut self, a: &'static str) -> Self {
+        if self.aliases.is_some() {
+            warn!(
+                "alias is used to everwrite the current alias (command: {})",
+                self.name.unwrap_or("unnamed")
+            )
+        }
+
+        self.aliases = Some(vec![a]);
         self
     }
 
-    pub fn aliases(mut self, a: Vec<String>) -> Self {
-        self.aliases = a;
+    pub fn aliases(mut self, a: Vec<&'static str>) -> Self {
+        if self.aliases.is_some() {
+            warn!(
+                "aliases is used to everwrite the current alias (command: {})",
+                self.name.unwrap_or("unnamed")
+            )
+        }
+
+        self.aliases = Some(a);
         self
     }
 
     pub fn chainable(mut self) -> Self {
-        self.chainable = true;
+        self.chainable = Some(true);
         self
     }
 
     pub fn whitelisted(mut self) -> Self {
-        self.whitelisted = true;
+        self.whitelisted = Some(true);
         self
     }
 
-    pub fn description<S: Into<String>>(mut self, text: S) -> Self {
-        self.description = text.into();
+    pub fn description(mut self, text: &'static str) -> Self {
+        self.description = Some(text);
         self
     }
 
@@ -152,17 +164,13 @@ impl CommandBuilder {
         mut self,
         f: impl Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static,
     ) -> Self {
-        self.command = Box::new(f);
+        self.command = Some(Box::new(f));
         self
     }
 
     pub fn done(self) -> Command {
         Command { ..self.into() }
     }
-}
-
-fn noop(_args: Vec<String>, _msg: Arc<Privmsg<'_>>) -> CommandResult {
-    panic!("Missing command when building Command")
 }
 
 pub enum CommandResult {
