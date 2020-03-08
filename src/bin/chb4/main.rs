@@ -1,5 +1,6 @@
 extern crate chrono;
 extern crate config;
+extern crate evalexpr;
 extern crate hyper;
 #[macro_use]
 extern crate log;
@@ -182,7 +183,7 @@ async fn main() {
 
     {
         let mut handles = Vec::new();
-        join_channel(client.clone(), channel).await;
+        context.join_channel(channel);
 
         for channel in database::channel::all_enabled(&context.pool().get().unwrap()) {
             let handle = join_channel(client.clone(), channel);

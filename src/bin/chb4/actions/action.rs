@@ -87,11 +87,14 @@ pub struct ActionBuilder {
     description: Option<&'static str>,
     command: Option<ActionFunction>,
 }
+
 impl Into<Action> for ActionBuilder {
     fn into(self) -> Action {
         Action {
-            name: self.name.unwrap(),
-            regex: self.regex.unwrap(),
+            name: self
+                .name
+                .unwrap_or_else(|| panic!("Missing name for command")),
+            regex: self.regex.unwrap_or(Regex::new("").unwrap()),
             whitelisted: self.whitelisted.unwrap_or(false),
             description: self.description.unwrap_or("description missing"),
             command: self.command.unwrap(),

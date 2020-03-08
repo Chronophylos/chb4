@@ -52,6 +52,7 @@ impl Context {
     }
 
     pub fn leave_channel(&self, channel: String) {
+        info!("Joining {}", channel);
         let leave = async {
             if let Err(err) = self.chat.writer().part(&channel).await {
                 match err {

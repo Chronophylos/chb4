@@ -1,7 +1,5 @@
 use super::prelude::*;
 
-use chb4::database;
-use chb4::helpers::Permission;
 use futures_executor::block_on;
 
 pub fn command(context: Arc<Context>) -> Command {

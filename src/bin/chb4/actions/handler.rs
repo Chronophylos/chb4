@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 pub struct ActionHandler {
     actions: Vec<Action>,
-    #[allow(dead_code)]
     context: Arc<Context>,
 }
 

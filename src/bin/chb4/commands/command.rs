@@ -98,8 +98,10 @@ pub struct CommandBuilder {
 impl Into<Command> for CommandBuilder {
     fn into(self) -> Command {
         Command {
-            name: self.name.unwrap(),
-            aliases: self.aliases.unwrap(),
+            name: self
+                .name
+                .unwrap_or_else(|| panic!("Missing name for command")),
+            aliases: self.aliases.unwrap_or(Vec::new()),
             chainable: self.chainable.unwrap_or(false),
             whitelisted: self.whitelisted.unwrap_or(false),
             description: self.description.unwrap_or("description missing"),

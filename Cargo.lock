@@ -75,6 +75,7 @@ dependencies = [
  "config",
  "diesel",
  "diesel_migrations",
+ "evalexpr",
  "flexi_logger",
  "futures-executor",
  "futures-util",
@@ -180,6 +181,12 @@ name = "doc-comment"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "807e5847c39ad6a11eac66de492ed1406f76a260eb8656e8740cad9eabc69c27"
+
+[[package]]
+name = "evalexpr"
+version = "5.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a8619223d40c23279f9120e2646712ec3eeeb68b546ed993c619d77682bdef8"
 
 [[package]]
 name = "flexi_logger"
