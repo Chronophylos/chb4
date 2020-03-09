@@ -6,6 +6,13 @@ use chb4::models::User;
 use regex::Regex;
 use std::convert::TryInto;
 
+lazy_static! {
+    static ref RE: Regex = {
+        trace!("Compiling regex for `quote`");
+        Regex::new(r#"^"(.*)"( - )?(.*) ([0-9:\-\.]+)$"#).unwrap()
+    };
+}
+
 pub fn command(context: Arc<Context>) -> Command {
     Command::with_name("quote")
         .alias("quotes")
@@ -29,15 +36,12 @@ pub fn command(context: Arc<Context>) -> Command {
 
             match args.get(0).map(String::as_str) {
                 Some("add") => add(context.clone(), msg, user, args[1..].to_vec()),
-                Some("remove") | Some("delete") => remove(
-                    context.clone(),
-                    msg,
-                    user,
-                    &args.get(1).unwrap_or(&String::from("")),
-                ),
-                Some("edit") => edit(context.clone(), args[1..].to_vec()),
-                Some("show") => show(context.clone(), &args.get(1).unwrap_or(&String::from(""))),
-                Some(qid) => show(context.clone(), qid),
+                Some("remove") | Some("delete") => {
+                    remove(context.clone(), msg, user, args.get(1).map(String::as_str))
+                }
+                Some("edit") => edit(context.clone(), msg, user, args[1..].to_vec()),
+                Some("show") => show(context.clone(), args.get(1).map(String::as_str)),
+                Some(qid) => show(context.clone(), Some(qid)),
                 None => CommandResult::Message(String::from("Missing sub-command")),
             }
         })
@@ -74,35 +78,25 @@ fn add(
 ) -> CommandResult {
     let permission = Permission::from_user(msg.clone(), &user).unwrap();
 
-    trace!("User permission {:?}", permission);
-
+    // check if permission is at least friend
     if permission < Permission::Friend {
         debug!("Permission not high enough");
         return CommandResult::NoMessage;
     }
 
     let msg = args.join(" ");
-
-    lazy_static! {
-        static ref RE: Regex = {
-            trace!("Compiling regex for `quote add`");
-            Regex::new("^\"(.*)\"( - )?(.*) ([0-9:\\-\\.]+)$").unwrap()
-        };
-    }
-
-    debug!("Parsing {}", msg);
-    let caps = match RE.captures(&msg) {
-        Some(c) => c,
-        None => return CommandResult::Message(String::from("I can't parse that quote")),
+    let (message, author, authored) = match parse_quote(&msg) {
+        Result::Ok(t) => t,
+        Result::Err(e) => return CommandResult::Message(e),
     };
 
-    debug!("Adding quote");
+    // insert quote
     let quote = match database::quote::new(
         &context.pool().get().unwrap(),
         user.id,
-        caps.get(3).unwrap().as_str(), // author
-        caps.get(4).unwrap().as_str(), // authored
-        caps.get(1).unwrap().as_str(), // message
+        author,
+        authored,
+        message,
     ) {
         Ok(q) => q,
         Err(e) => return e.into(),
@@ -112,21 +106,33 @@ fn add(
     CommandResult::Message(format!("Added new quote with id {}", quote.id))
 }
 
-fn remove(context: Arc<Context>, msg: Arc<Privmsg<'_>>, user: User, qid: &str) -> CommandResult {
+fn remove(
+    context: Arc<Context>,
+    msg: Arc<Privmsg<'_>>,
+    user: User,
+    qid: Option<&str>,
+) -> CommandResult {
+    // unwrap option
+    let qid: &str = match qid {
+        Some(qid) => qid,
+        None => return CommandResult::Message(String::from("Argument quote id missing")),
+    };
+
     let permission = Permission::from_user(msg.clone(), &user).unwrap();
 
-    trace!("User permission {:?}", permission);
-
+    // check if permission is at least friend
     if permission < Permission::Friend {
         debug!("Permission not high enough");
         return CommandResult::NoMessage;
     }
 
+    // parse str to i32
     let qid: i32 = match qid.parse() {
         Ok(id) => id,
         Err(e) => return e.into(),
     };
 
+    // query quote
     let quote = match database::quote::by_id(&context.pool().get().unwrap(), qid) {
         Ok(q) => q,
         Err(e) => return e.into(),
@@ -137,6 +143,7 @@ fn remove(context: Arc<Context>, msg: Arc<Privmsg<'_>>, user: User, qid: &str) -
         None => return CommandResult::Message(format!("Not quote with id {} found", qid)),
     };
 
+    // check permissions
     if quote.creator_id != user.id && permission != Permission::Owner {
         return CommandResult::Message(String::from("You do not have permissions for this quote"));
     }
@@ -147,16 +154,82 @@ fn remove(context: Arc<Context>, msg: Arc<Privmsg<'_>>, user: User, qid: &str) -
     }
 }
 
-fn edit(context: Arc<Context>, args: Vec<String>) -> CommandResult {
-    unimplemented!()
-}
+fn edit(
+    context: Arc<Context>,
+    msg: Arc<Privmsg<'_>>,
+    user: User,
+    args: Vec<String>,
+) -> CommandResult {
+    // unwrap option
+    let qid: &str = match args.get(0) {
+        Some(q) => q,
+        None => return CommandResult::Message(String::from("Missing quote id")),
+    };
 
-fn show(context: Arc<Context>, qid: &str) -> CommandResult {
+    let permission = Permission::from_user(msg.clone(), &user).unwrap();
+
+    // check if permission is at least friend
+    if permission < Permission::Friend {
+        debug!("Permission not high enough");
+        return CommandResult::NoMessage;
+    }
+
+    // parse str to i32
     let qid: i32 = match qid.parse() {
         Ok(id) => id,
         Err(e) => return e.into(),
     };
 
+    // query quote
+    let quote = match database::quote::by_id(&context.pool().get().unwrap(), qid) {
+        Ok(q) => q,
+        Err(e) => return e.into(),
+    };
+
+    let quote = match quote {
+        Some(q) => q,
+        None => return CommandResult::Message(format!("Not quote with id {} found", qid)),
+    };
+
+    // check permissions
+    if quote.creator_id != user.id && permission != Permission::Owner {
+        return CommandResult::Message(String::from("You do not have permissions for this quote"));
+    }
+
+    let msg = args.join(" ");
+    let (message, author, authored) = match parse_quote(&msg) {
+        Result::Ok(t) => t,
+        Result::Err(e) => return CommandResult::Message(e),
+    };
+
+    let quote = match database::quote::update(
+        &context.pool().get().unwrap(),
+        &quote,
+        author,
+        authored,
+        message,
+    ) {
+        Ok(q) => q,
+        Err(e) => return e.into(),
+    };
+
+    CommandResult::Message(format!("Edited quote {}", quote.id))
+}
+
+fn show(context: Arc<Context>, qid: Option<&str>) -> CommandResult {
+    // unwrap option
+    let qid: &str = match qid {
+        Some(qid) => qid,
+        None => return CommandResult::Message(String::from("Argument quote id missing")),
+    };
+
+    // parse str to i32
+    let qid: i32 = match qid.parse() {
+        Ok(id) => id,
+        Err(e) => return e.into(),
+    };
+
+    // query quote
     let quote = match database::quote::by_id(&context.pool().get().unwrap(), qid) {
         Ok(q) => q,
         Err(e) => return e.into(),
@@ -166,4 +239,30 @@ fn show(context: Arc<Context>, qid: &str) -> CommandResult {
         Some(q) => CommandResult::Message(format!("{}", q)),
         None => CommandResult::Message(format!("Not quote with id {} found", qid)),
     }
+}
+
+fn parse_quote(msg: &str) -> Result<(&str, &str, &str)> {
+    // parse quote
+    let caps = match RE.captures(&msg) {
+        Some(c) => c,
+        None => return Result::Err(String::from("I can't parse that quote")),
+    };
+
+    let message = caps.get(1).unwrap().as_str();
+    let author = caps.get(3).unwrap().as_str();
+    let authored = caps.get(4).unwrap().as_str();
+
+    if message.len() > 500 {
+        return Result::Err(String::from("Quote is too long, max length is 500"));
+    }
+
+    if author.len() > 25 {
+        return Result::Err(String::from("Author is too long, max length is 25"));
+    }
+
+    if authored.len() > 25 {
+        return Result::Err(String::from("Date is too long, max length is 25"));
+    }
+
+    Result::Ok((message, author, authored))
 }

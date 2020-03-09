@@ -175,6 +175,7 @@ impl CommandBuilder {
     }
 }
 
+#[derive(Debug)]
 pub enum CommandResult {
     Message(String),
     NoMessage,
@@ -189,4 +190,9 @@ where
     fn from(error: T) -> Self {
         Self::Error(error.to_string())
     }
+}
+
+pub enum Result<T> {
+    Ok(T),
+    Err(String),
 }

@@ -1,4 +1,4 @@
-use crate::models::{NewQuote, Quote};
+use crate::models::{EditQuote, NewQuote, Quote};
 use crate::schema::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
@@ -18,6 +18,12 @@ pub enum Error {
 
     #[snafu(display("Removing quote (id: {}): {}", id, source))]
     RemoveQuote {
+        id: i32,
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Updating quote (id: {}): {}", id, source))]
+    UpdateQuote {
         id: i32,
         source: diesel::result::Error,
     },
@@ -44,6 +50,27 @@ pub fn new<'a>(
         })
         .get_result(conn)
         .context(InsertQuote)?;
+
+    Ok(quote)
+}
+
+pub fn update<'a>(
+    conn: &PgConnection,
+    quote: &Quote,
+    author: &'a str,
+    authored: &'a str,
+    message: &'a str,
+) -> Result<Quote> {
+    trace!("Updating quote (id: {})", quote.id);
+
+    let quote = diesel::update(quote)
+        .set(&EditQuote {
+            author,
+            authored,
+            message,
+        })
+        .get_result(conn)
+        .context(UpdateQuote { id: quote.id })?;
 
     Ok(quote)
 }

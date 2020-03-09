@@ -34,3 +34,11 @@ pub struct NewQuote<'a> {
     pub authored: &'a str,
     pub message: &'a str,
 }
+
+#[derive(AsChangeset)]
+#[table_name = "quotes"]
+pub struct EditQuote<'a> {
+    pub author: &'a str,
+    pub authored: &'a str,
+    pub message: &'a str,
+}
