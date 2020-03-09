@@ -58,6 +58,15 @@ pub struct NewUserWithName<'a> {
 
 #[derive(AsChangeset)]
 #[table_name = "users"]
+pub struct FixUserWithOnlyName<'a> {
+    pub twitch_id: i64,
+    pub display_name: &'a str,
+    pub first_seen: &'a NaiveDateTime,
+    pub last_seen: &'a NaiveDateTime,
+}
+
+#[derive(AsChangeset)]
+#[table_name = "users"]
 pub struct BumpUser<'a> {
     pub name: &'a str,
     pub display_name: &'a str,

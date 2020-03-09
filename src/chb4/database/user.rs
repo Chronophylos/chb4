@@ -1,4 +1,4 @@
-use crate::models::{BumpUser, NewUser, User};
+use crate::models::{BumpUser, FixUserWithOnlyName, NewUser, User};
 use crate::schema::users;
 use chrono::prelude::*;
 use diesel::prelude::*;
@@ -47,18 +47,30 @@ pub fn create<'a>(
         name
     );
 
-    let now = now.naive_utc();
+    // check if use with the same name exists
 
-    let user = diesel::insert_into(users::table)
-        .values(&NewUser {
-            twitch_id,
-            name,
-            display_name,
-            first_seen: &now,
-            last_seen: &now,
-        })
-        .get_result(conn)
-        .context(InsertUser { name, twitch_id })?;
+    let now = now.naive_utc();
+    let user = match self::by_name(conn, name)? {
+        Some(user) => diesel::update(&user)
+            .set(&FixUserWithOnlyName {
+                twitch_id,
+                display_name,
+                first_seen: &now,
+                last_seen: &now,
+            })
+            .get_result(conn)
+            .context(UpdateUser { twitch_id })?,
+        None => diesel::insert_into(users::table)
+            .values(&NewUser {
+                twitch_id,
+                name,
+                display_name,
+                first_seen: &now,
+                last_seen: &now,
+            })
+            .get_result(conn)
+            .context(InsertUser { name, twitch_id })?,
+    };
 
     Ok(user)
 }
@@ -74,26 +86,19 @@ pub fn bump<'a>(
     debug!("Bumping user (twitch_id: {})", twitch_id);
 
     // get the user from the database
-    let user = self::by_twitch_id(conn, twitch_id)?;
-
-    if user.is_some() {
-        // user exists
-        let user = diesel::update(&user.unwrap())
+    let user = match self::by_twitch_id(conn, twitch_id)? {
+        Some(user) => diesel::update(&user)
             .set(&BumpUser {
                 name,
                 display_name,
                 last_seen: &now.naive_utc(),
             })
             .get_result(conn)
-            .context(UpdateUser { twitch_id })?;
+            .context(UpdateUser { twitch_id })?,
+        None => create(&conn, twitch_id, name, display_name, now)?,
+    };
 
-        Ok(user)
-    } else {
-        // user doesnt exist
-        let user = create(&conn, twitch_id, name, display_name, now)?;
-
-        Ok(user)
-    }
+    Ok(user)
 }
 
 pub fn by_twitch_id<'a>(conn: &PgConnection, twitch_id: i64) -> Result<Option<User>> {
