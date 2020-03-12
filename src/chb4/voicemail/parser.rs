@@ -1,7 +1,7 @@
 //! Format Specification
 //!
 //! ```ABNF
-//! voicemail = recipients [SP schedule] SP message
+//! voicemail = recipients [schedule] SP message
 //!
 //! recipients = recipient-name *(recpipent-sep recipient-name)
 //! recipient-name = ["@"] *ALPHA
@@ -10,7 +10,7 @@
 //! reci-sep-comma = [SP] "," SP
 //!
 //! message = *ALPHA *(SP *ALPHA)
-//! schedule = absolute-schedule / relative-schedule
+//! schedule = SP absolute-schedule / relative-schedule
 //!
 //! absolute-schedule = "on" / "at" SP absolute-schedule-spec
 //! absolute-schedule-spec = rfc2822 ; see https://tools.ietf.org/html/rfc2822#section-3.3
@@ -54,10 +54,10 @@ use super::Voicemail;
 use chrono::prelude::*;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, tag_no_case, take_till, take_while, take_while_m_n},
+    bytes::complete::{tag, tag_no_case, take_while, take_while_m_n},
     character::complete::digit1,
     combinator::{map, map_res, opt},
-    multi::{fold_many1, separated_list},
+    multi::{fold_many0, separated_list},
     sequence::pair,
     IResult,
 };
@@ -78,27 +78,33 @@ enum Units {
     Century,
 }
 
-//
-// Units
-//
+#[cfg(not(test))]
+fn now() -> NaiveDateTime {
+    Utc::now().naive_utc()
+}
+
+#[cfg(test)]
+fn now() -> NaiveDateTime {
+    NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0)
+}
 
 /// century = "century" ["s"]
 fn parse_century<'a>(i: &'a str) -> IResult<&'a str, Units> {
-    let (i, _) = alt((tag_no_case("century"), tag_no_case("centurys")))(i)?;
+    let (i, _) = alt((tag_no_case("centurys"), tag_no_case("century")))(i)?;
 
     Ok((i, Units::Century))
 }
 
 /// decade = "decade" ["s"]
 fn parse_decade<'a>(i: &'a str) -> IResult<&'a str, Units> {
-    let (i, _) = alt((tag_no_case("decade"), tag_no_case("decades")))(i)?;
+    let (i, _) = alt((tag_no_case("decades"), tag_no_case("decade")))(i)?;
 
     Ok((i, Units::Decade))
 }
 
 /// year = "y" ["ear" ["s"]]
 fn parse_year<'a>(i: &'a str) -> IResult<&'a str, Units> {
-    let (i, _) = alt((tag_no_case("year"), tag_no_case("years")))(i)?;
+    let (i, _) = alt((tag_no_case("years"), tag_no_case("year")))(i)?;
 
     Ok((i, Units::Year))
 }
@@ -106,9 +112,9 @@ fn parse_year<'a>(i: &'a str) -> IResult<&'a str, Units> {
 /// quatal = "q" ["atal" ["s"]]
 fn parse_quatal<'a>(i: &'a str) -> IResult<&'a str, Units> {
     let (i, _) = alt((
-        tag_no_case("q"),
-        tag_no_case("qatal"),
         tag_no_case("quatals"),
+        tag_no_case("qatal"),
+        tag_no_case("q"),
     ))(i)?;
 
     Ok((i, Units::Quartal))
@@ -116,7 +122,7 @@ fn parse_quatal<'a>(i: &'a str) -> IResult<&'a str, Units> {
 
 /// month = "month" ["s"]
 fn parse_month<'a>(i: &'a str) -> IResult<&'a str, Units> {
-    let (i, _) = alt((tag_no_case("month"), tag_no_case("months")))(i)?;
+    let (i, _) = alt((tag_no_case("months"), tag_no_case("month")))(i)?;
 
     Ok((i, Units::Month))
 }
@@ -124,10 +130,10 @@ fn parse_month<'a>(i: &'a str) -> IResult<&'a str, Units> {
 /// fortnight = "fort" ("night" / "nite") ["s"]
 fn parse_fortnite<'a>(i: &'a str) -> IResult<&'a str, Units> {
     let (i, _) = alt((
-        tag_no_case("fortnight"),
         tag_no_case("fortnights"),
-        tag_no_case("fortnite"),
+        tag_no_case("fortnight"),
         tag_no_case("fortnites"),
+        tag_no_case("fortnite"),
     ))(i)?;
 
     Ok((i, Units::Fortnight))
@@ -135,21 +141,21 @@ fn parse_fortnite<'a>(i: &'a str) -> IResult<&'a str, Units> {
 
 /// week = "w" ["eek" ["s"]]
 fn parse_week<'a>(i: &'a str) -> IResult<&'a str, Units> {
-    let (i, _) = alt((tag_no_case("w"), tag_no_case("week"), tag_no_case("weeks")))(i)?;
+    let (i, _) = alt((tag_no_case("weeks"), tag_no_case("week"), tag_no_case("w")))(i)?;
 
     Ok((i, Units::Week))
 }
 
 /// day = "d" ["ay" ["s"]]
 fn parse_day<'a>(i: &'a str) -> IResult<&'a str, Units> {
-    let (i, _) = alt((tag_no_case("d"), tag_no_case("day"), tag_no_case("days")))(i)?;
+    let (i, _) = alt((tag_no_case("days"), tag_no_case("day"), tag_no_case("d")))(i)?;
 
     Ok((i, Units::Day))
 }
 
 /// hour = "h" ["our" ["s"]]
 fn parse_hour<'a>(i: &'a str) -> IResult<&'a str, Units> {
-    let (i, _) = alt((tag_no_case("h"), tag_no_case("hour"), tag_no_case("hours")))(i)?;
+    let (i, _) = alt((tag_no_case("hours"), tag_no_case("hour"), tag_no_case("h")))(i)?;
 
     Ok((i, Units::Hour))
 }
@@ -157,10 +163,10 @@ fn parse_hour<'a>(i: &'a str) -> IResult<&'a str, Units> {
 /// minute = "m" ["in" ["ute" ["s"]]]
 fn parse_minute<'a>(i: &'a str) -> IResult<&'a str, Units> {
     let (i, _) = alt((
-        tag_no_case("m"),
-        tag_no_case("min"),
-        tag_no_case("minute"),
         tag_no_case("minutes"),
+        tag_no_case("minute"),
+        tag_no_case("min"),
+        tag_no_case("m"),
     ))(i)?;
 
     Ok((i, Units::Minute))
@@ -169,10 +175,10 @@ fn parse_minute<'a>(i: &'a str) -> IResult<&'a str, Units> {
 /// second = "s" ["ec" ["ond" ["s"]]]
 fn parse_second<'a>(i: &'a str) -> IResult<&'a str, Units> {
     let (i, _) = alt((
-        tag_no_case("s"),
-        tag_no_case("sec"),
-        tag_no_case("second"),
         tag_no_case("seconds"),
+        tag_no_case("second"),
+        tag_no_case("sec"),
+        tag_no_case("s"),
     ))(i)?;
 
     Ok((i, Units::Second))
@@ -213,18 +219,28 @@ fn parse_relative_schedule_spec<'a>(i: &'a str) -> IResult<&'a str, chrono::Dura
 
     Ok((
         i,
+        // Time is hard and having accurate times is even harder.
+        // There will always be some inaccuracy and I hate it but can't really do anything about
+        // it. In one of the tests the inaccuracy is at 0.008%. I think this is acceptable for what
+        // I need it to be. If I have some time I may come back to these numbers and tweak them.
         to_chrono_duration(match unit {
+            // easy stuff
             Units::Second => amount * 1,
             Units::Minute => amount * 60,
-            Units::Hour => amount * 60 * 60,
-            Units::Day => amount * 60 * 60 * 24,
-            Units::Week => amount * 60 * 60 * 24 * 7,
-            Units::Fortnight => amount * 60 * 60 * 24 * 7 * 2,
-            Units::Month => amount * 60 * 60 * 24 * 7 * 30,
-            Units::Quartal => amount * 60 * 60 * 24 * 7 * 30 * 3,
-            Units::Year => amount * 60 * 60 * 24 * 7 * 356,
-            Units::Decade => amount * 60 * 60 * 24 * 7 * 356 * 10,
-            Units::Century => amount * 60 * 60 * 24 * 7 * 356 * 100,
+            Units::Hour => amount * 3_600,
+            Units::Day => amount * 86_400,
+            Units::Week => amount * 604_800,
+            Units::Fortnight => amount * 1_209_600,
+            // hard stuff
+            // a month is 30 days and 10 hours
+            Units::Month => amount * 2_628_000,
+            Units::Quartal => amount * 7_884_000,
+            // a year is 356 days
+            Units::Year => amount * 31_536_000,
+            // a decade is 3562 days
+            Units::Decade => amount * 315_568_800,
+            // a centry is 35624 days
+            Units::Century => amount * 3_155_695_200,
         }),
     ))
 }
@@ -245,11 +261,12 @@ fn to_chrono_duration(d: Duration) -> chrono::Duration {
 /// relative-schedule = "in" SP relative-schedule-spec *(SP relative-schedule-spec)
 fn parse_relative_schedule<'a>(i: &'a str) -> IResult<&'a str, chrono::Duration> {
     let (i, _) = tag_no_case("in")(i)?;
-    let (i, _) = take_while(char::is_whitespace)(i)?;
+    let (i, _) = take_space(i)?;
+
     let (i, dur) = parse_relative_schedule_spec(i)?;
-    fold_many1(
+    fold_many0(
         |i| {
-            take_space(i)?;
+            let (i, _) = take_space(i)?;
             parse_relative_schedule_spec(i)
         },
         dur,
@@ -344,12 +361,13 @@ fn parse_absoulute_schedule<'a>(i: &'a str) -> IResult<&'a str, NaiveDateTime> {
     parse_absoulute_schedule_spec(i)
 }
 
-/// schedule = absolute-schedule / relative-schedule
+/// schedule = SP absolute-schedule / relative-schedule
 fn parse_schedule<'a>(i: &'a str) -> IResult<&'a str, NaiveDateTime> {
     alt((
         parse_absoulute_schedule,
         map(parse_relative_schedule, |d: chrono::Duration| {
-            Utc::now().naive_utc() + d
+            println!("{:?}", d);
+            now() + d
         }),
     ))(i)
 }
@@ -360,9 +378,14 @@ fn parse_message<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
     Ok(("", i))
 }
 
+fn is_recipent_name(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_'
+}
+
 /// recipient-name = ["@"] *ALPHA
 fn parse_recipient_name<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
-    take_till(char::is_whitespace)(i)
+    let (i, _) = opt(tag("@"))(i)?;
+    take_while(is_recipent_name)(i)
 }
 
 /// recipient-sep = reci-sep-and / reci-sep-comma
@@ -393,10 +416,16 @@ fn parse_recipients<'a>(i: &'a str) -> IResult<&'a str, Vec<&'a str>> {
     separated_list(parse_recipient_sep, parse_recipient_name)(i)
 }
 
-/// voicemail = recipients [SP schedule] SP message
+fn parse_schedule_with_space<'a>(i: &'a str) -> IResult<&'a str, NaiveDateTime> {
+    let (i, _) = take_space(i)?;
+
+    parse_schedule(i)
+}
+
+/// voicemail = recipients [schedule] SP message
 pub fn parse_voicemail<'a>(i: &'a str) -> IResult<&'a str, Voicemail> {
     let (i, recipients) = parse_recipients(i)?;
-    let (i, schedule) = opt(parse_schedule)(i)?;
+    let (i, schedule) = opt(parse_schedule_with_space)(i)?;
     let (i, message) = parse_message(i)?;
 
     Ok((
@@ -424,6 +453,11 @@ mod tests {
             parse_schedule("on 2020-10-10 12:34:56"),
             Ok(("", NaiveDate::from_ymd(2020, 10, 10).and_hms(12, 34, 56)))
         );
+
+        assert_eq!(
+            parse_schedule("in 2 days 2 week 4 months 1 hour 3 decades"),
+            Ok(("", NaiveDate::from_ymd(2030, 5, 17).and_hms(23, 0, 0)))
+        )
     }
 
     #[test]
@@ -451,5 +485,17 @@ mod tests {
                 }
             ))
         );
+
+        assert_eq!(
+            parse_voicemail("nizzlenils, nizzlenico in 1 fortnight Pepeja"),
+            Ok((
+                "",
+                Voicemail {
+                    recipients: vec!["nizzlenils", "nizzlenico"],
+                    message: "Pepeja",
+                    schedule: Some(NaiveDate::from_ymd(2000, 1, 15).and_hms(0, 0, 0)),
+                }
+            ))
+        )
     }
 }
