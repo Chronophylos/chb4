@@ -1,7 +1,10 @@
+use chrono::prelude::*;
+
+#[derive(Debug, PartialEq)]
 pub struct Voicemail {
-    receivers: Vec<String>,
-    scheduled: Option<NaiveDateTime>,
+    recipients: Vec<String>,
     message: String,
+    schedule: Option<NaiveDateTime>,
 }
 
-mod parser;
+pub mod parser;

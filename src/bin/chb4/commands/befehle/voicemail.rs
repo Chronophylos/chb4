@@ -1,8 +1,12 @@
 use super::prelude::*;
 
-pub fn command(_context: Arc<Context>) -> Command {
+lazy_static! {
+    static ref SEPERATORS: Vec<&'static str> = vec!["&&", "and", "und"];
+}
+
+pub fn command(context: Arc<Context>) -> Command {
     Command::with_name("voicemail")
         .alias("tell")
-        .command(|_args, _msg| CommandResult::Error(String::from("Not implemented")))
+        .command(move |args, msg| todo!())
         .done()
 }
