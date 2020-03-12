@@ -83,6 +83,7 @@ dependencies = [
  "lazy_static",
  "log",
  "nom",
+ "nom-trace",
  "r2d2",
  "rand",
  "regex",
@@ -593,6 +594,15 @@ dependencies = [
  "lexical-core",
  "memchr",
  "version_check",
+]
+
+[[package]]
+name = "nom-trace"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5670812706767ed69c4a4b8f520e8743b3aeee70d9f22adf63d0194a386c12f2"
+dependencies = [
+ "nom",
 ]
 
 [[package]]

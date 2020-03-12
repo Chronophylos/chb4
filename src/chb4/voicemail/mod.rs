@@ -1,9 +1,9 @@
 use chrono::prelude::*;
 
 #[derive(Debug, PartialEq)]
-pub struct Voicemail {
-    recipients: Vec<String>,
-    message: String,
+pub struct Voicemail<'a> {
+    recipients: Vec<&'a str>,
+    message: &'a str,
     schedule: Option<NaiveDateTime>,
 }
 

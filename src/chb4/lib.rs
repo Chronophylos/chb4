@@ -3,7 +3,6 @@ extern crate diesel;
 #[macro_use]
 extern crate log;
 extern crate futures_executor;
-#[macro_use]
 extern crate lazy_static;
 extern crate nom;
 extern crate r2d2;

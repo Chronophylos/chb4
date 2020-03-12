@@ -307,6 +307,8 @@ fn parse_rfc3339_date_time<'a>(i: &'a str) -> IResult<&'a str, NaiveDateTime> {
     let (i, _) = tag("-")(i)?;
     let (i, day) = num_2::<u32>(i)?;
 
+    let (i, _) = alt((tag("T"), take_space))(i)?;
+
     let (i, hour) = num_2::<u32>(i)?;
     let (i, _) = tag(":")(i)?;
     let (i, minute) = num_2::<u32>(i)?;
@@ -326,9 +328,9 @@ fn parse_rfc3339_date_time<'a>(i: &'a str) -> IResult<&'a str, NaiveDateTime> {
 fn parse_absoulute_schedule_spec<'a>(i: &'a str) -> IResult<&'a str, NaiveDateTime> {
     let (i, date) = alt((
         //parse_rfc2822, // TODO: implement
+        parse_rfc3339_date_time,
         parse_rfc3339_date,
         parse_rfc3339_time,
-        parse_rfc3339_date_time,
     ))(i)?;
 
     Ok((i, date))
@@ -353,14 +355,14 @@ fn parse_schedule<'a>(i: &'a str) -> IResult<&'a str, NaiveDateTime> {
 }
 
 /// message = *ALPHA *(SP *ALPHA)
-fn parse_message<'a>(i: &'a str) -> IResult<&'a str, String> {
+fn parse_message<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
     let (i, _) = take_space(i)?;
-    Ok(("", i.to_owned()))
+    Ok(("", i))
 }
 
 /// recipient-name = ["@"] *ALPHA
-fn parse_recipient_name<'a>(i: &'a str) -> IResult<&'a str, String> {
-    map(take_till(char::is_whitespace), |s: &str| s.to_owned())(i)
+fn parse_recipient_name<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
+    take_till(char::is_whitespace)(i)
 }
 
 /// recipient-sep = reci-sep-and / reci-sep-comma
@@ -387,7 +389,7 @@ fn parse_recipient_sep_comma<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
 }
 
 /// recipients = recipient-name *(recipipent-sep recipient-name)
-fn parse_recipients<'a>(i: &'a str) -> IResult<&'a str, Vec<String>> {
+fn parse_recipients<'a>(i: &'a str) -> IResult<&'a str, Vec<&'a str>> {
     separated_list(parse_recipient_sep, parse_recipient_name)(i)
 }
 
@@ -412,15 +414,40 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_parse_schedule() {
+        assert_eq!(
+            parse_schedule("on 2020-10-10"),
+            Ok(("", NaiveDate::from_ymd(2020, 10, 10).and_hms(0, 0, 0)))
+        );
+
+        assert_eq!(
+            parse_schedule("on 2020-10-10 12:34:56"),
+            Ok(("", NaiveDate::from_ymd(2020, 10, 10).and_hms(12, 34, 56)))
+        );
+    }
+
+    #[test]
     fn test_parse_voicemail() {
         assert_eq!(
             parse_voicemail("some_weeb weebSlam"),
             Ok((
                 "",
                 Voicemail {
-                    recipients: vec![String::from("some_weeb")],
-                    message: String::from("weebSlam"),
+                    recipients: vec!["some_weeb"],
+                    message: "weebSlam",
                     schedule: None
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_voicemail("coroner on 2020-10-24 does corona still exist?"),
+            Ok((
+                "",
+                Voicemail {
+                    recipients: vec!["coroner"],
+                    message: "does corona still exist?",
+                    schedule: Some(NaiveDate::from_ymd(2020, 10, 24).and_hms(0, 0, 0))
                 }
             ))
         );
