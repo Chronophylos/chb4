@@ -52,9 +52,10 @@ pub fn new(
         name
     );
 
-    // check if use with the same name exists
-
     let now = now.naive_utc();
+
+    // check if a user with the name already exists.
+    // if a user is found fix the row, else add a new user.
     let user = match self::by_name(conn, name)? {
         Some(user) => diesel::update(&user)
             .set(&FixUserWithOnlyName {
