@@ -21,6 +21,6 @@ pub fn all(context: Arc<Context>) -> Vec<Command> {
         math::command(),
         quote::command(context.clone()),
         test::command(),
-        //voicemail::command(context.clone()),
+        voicemail::command(context),
     ]
 }

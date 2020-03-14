@@ -4,6 +4,8 @@ use std::sync::Arc;
 
 pub struct ActionHandler {
     actions: Vec<Action>,
+
+    #[allow(dead_code)]
     context: Arc<Context>,
 }
 
@@ -61,7 +63,7 @@ pub fn new(context: Arc<Context>) -> ActionHandler {
     use super::aktionen;
     let mut ah = ActionHandler::new(context.clone());
 
-    ah.add_all(aktionen::all(context.clone()));
+    ah.add_all(aktionen::all(context));
 
     ah
 }

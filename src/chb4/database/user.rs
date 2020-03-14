@@ -1,4 +1,4 @@
-use crate::models::{BumpUser, FixUserWithOnlyName, NewUser, User};
+use crate::models::{BumpUser, FixUserWithOnlyName, NewUser, NewUserWithName, User};
 use crate::schema::users;
 use chrono::prelude::*;
 use diesel::prelude::*;
@@ -30,11 +30,16 @@ pub enum Error {
         twitch_id: i64,
         source: diesel::result::Error,
     },
+
+    CreateUserWithName {
+        name: String,
+        source: diesel::result::Error,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn create<'a>(
+pub fn new(
     conn: &PgConnection,
     twitch_id: i64,
     name: &str,
@@ -75,6 +80,15 @@ pub fn create<'a>(
     Ok(user)
 }
 
+pub fn with_name(conn: &PgConnection, name: &str) -> Result<User> {
+    trace!("Creating new empty user with name (name: {}", name);
+
+    diesel::insert_into(users::table)
+        .values(&NewUserWithName { name })
+        .get_result(conn)
+        .context(CreateUserWithName { name })
+}
+
 // TODO: check if the logic can be offloaded to the database
 pub fn bump<'a>(
     conn: &PgConnection,
@@ -95,13 +109,13 @@ pub fn bump<'a>(
             })
             .get_result(conn)
             .context(UpdateUser { twitch_id })?,
-        None => create(&conn, twitch_id, name, display_name, now)?,
+        None => new(&conn, twitch_id, name, display_name, now)?,
     };
 
     Ok(user)
 }
 
-pub fn by_twitch_id<'a>(conn: &PgConnection, twitch_id: i64) -> Result<Option<User>> {
+pub fn by_twitch_id(conn: &PgConnection, twitch_id: i64) -> Result<Option<User>> {
     trace!("Getting user (twitch_id: {})", twitch_id);
 
     users::table
@@ -111,7 +125,7 @@ pub fn by_twitch_id<'a>(conn: &PgConnection, twitch_id: i64) -> Result<Option<Us
         .context(GetUserByTwitchID { twitch_id })
 }
 
-pub fn by_name<'a>(conn: &PgConnection, name: &'a str) -> Result<Option<User>> {
+pub fn by_name(conn: &PgConnection, name: &str) -> Result<Option<User>> {
     trace!("Getting user (name: {})", name);
 
     users::table

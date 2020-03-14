@@ -63,12 +63,12 @@ CREATE TABLE quotes (
     message    VARCHAR(500) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS voicemails (
+CREATE TABLE voicemails (
     id          SERIAL PRIMARY KEY,
     creator_id  INTEGER REFERENCES users NOT NULL,
     receiver_id INTEGER REFERENCES users NOT NULL,
     created     TIMESTAMP NOT NULL,
     scheduled   TIMESTAMP NULL,
-    active      BOOLEAN DEFAULT true,
+    active      BOOLEAN NOT NULL DEFAULT true,
     message     VARCHAR(500) NOT NULL
 );

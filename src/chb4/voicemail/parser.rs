@@ -225,7 +225,7 @@ fn parse_relative_schedule_spec<'a>(i: &'a str) -> IResult<&'a str, chrono::Dura
         // I need it to be. If I have some time I may come back to these numbers and tweak them.
         to_chrono_duration(match unit {
             // easy stuff
-            Units::Second => amount * 1,
+            Units::Second => amount,
             Units::Minute => amount * 60,
             Units::Hour => amount * 3_600,
             Units::Day => amount * 86_400,
@@ -431,8 +431,8 @@ pub fn parse_voicemail<'a>(i: &'a str) -> IResult<&'a str, Voicemail> {
     Ok((
         i,
         Voicemail {
-            recipients,
-            message,
+            recipients: recipients.iter().map(|&x| x.to_owned()).collect(),
+            message: message.to_owned(),
             schedule,
         },
     ))
@@ -467,8 +467,8 @@ mod tests {
             Ok((
                 "",
                 Voicemail {
-                    recipients: vec!["some_weeb"],
-                    message: "weebSlam",
+                    recipients: vec![String::from("some_weeb")],
+                    message: String::from("weebSlam"),
                     schedule: None
                 }
             ))
@@ -479,8 +479,8 @@ mod tests {
             Ok((
                 "",
                 Voicemail {
-                    recipients: vec!["coroner"],
-                    message: "does corona still exist?",
+                    recipients: vec![String::from("coroner")],
+                    message: String::from("does corona still exist?"),
                     schedule: Some(NaiveDate::from_ymd(2020, 10, 24).and_hms(0, 0, 0))
                 }
             ))
@@ -491,8 +491,8 @@ mod tests {
             Ok((
                 "",
                 Voicemail {
-                    recipients: vec!["nizzlenils", "nizzlenico"],
-                    message: "Pepeja",
+                    recipients: vec![String::from("nizzlenils"), String::from("nizzlenico")],
+                    message: String::from("Pepeja"),
                     schedule: Some(NaiveDate::from_ymd(2000, 1, 15).and_hms(0, 0, 0)),
                 }
             ))

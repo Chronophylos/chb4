@@ -5,7 +5,7 @@ use twitchchat::messages::Privmsg;
 
 pub type ActionFunction = Box<dyn Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static>;
 
-// I want trail aliases PepeHands
+// I want trait aliases PepeHands
 // pub type ActionFunctionImpl =
 //     impl Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static;
 
@@ -38,7 +38,7 @@ impl Action {
 
 /// Shadow constructor for `ActionBuilder`
 impl Action {
-    pub fn with_name<'a>(name: &'static str) -> ActionBuilder {
+    pub fn with_name(name: &'static str) -> ActionBuilder {
         ActionBuilder::with_name(name)
     }
 }
@@ -94,7 +94,10 @@ impl Into<Action> for ActionBuilder {
             name: self
                 .name
                 .unwrap_or_else(|| panic!("Missing name for command")),
-            regex: self.regex.unwrap_or(Regex::new("").unwrap()),
+            regex: self.regex.unwrap_or_else(|| {
+                #[allow(clippy::trivial_regex)]
+                Regex::new("").unwrap()
+            }),
             whitelisted: self.whitelisted.unwrap_or(false),
             description: self.description.unwrap_or("description missing"),
             command: self.command.unwrap(),
@@ -123,11 +126,13 @@ impl ActionBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub fn whitelisted(mut self) -> Self {
         self.whitelisted = Some(true);
         self
     }
 
+    #[allow(dead_code)]
     pub fn description(mut self, text: &'static str) -> Self {
         self.description = Some(text);
         self
@@ -146,6 +151,7 @@ impl ActionBuilder {
     }
 }
 
+#[allow(dead_code)]
 pub enum ActionResult {
     Message(String),
     NoMessage,

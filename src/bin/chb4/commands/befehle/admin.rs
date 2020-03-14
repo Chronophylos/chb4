@@ -55,7 +55,7 @@ fn leave(context: Arc<Context>, args: Vec<String>) -> CommandResult {
 
     match database::channel::leave(&context.pool().get().unwrap(), &channel) {
         Err(e) => CommandResult::Error(format!("{:?}", e)),
-        Ok(_) => CommandResult::Message(format!("Left {}", channel).to_string()),
+        Ok(_) => CommandResult::Message(format!("Left {}", channel)),
     }
 }
 
@@ -67,6 +67,6 @@ fn join(context: Arc<Context>, args: Vec<String>) -> CommandResult {
 
     match database::channel::join(&context.pool().get().unwrap(), &channel) {
         Err(e) => CommandResult::Error(format!("{:?}", e)),
-        Ok(_) => CommandResult::Message(format!("Joined {}", channel).to_string()),
+        Ok(_) => CommandResult::Message(format!("Joined {}", channel)),
     }
 }

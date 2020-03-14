@@ -27,6 +27,7 @@ impl Command {
         self.aliases.clone()
     }
 
+    #[allow(dead_code)]
     pub fn chainable(&self) -> bool {
         self.chainable
     }
@@ -101,7 +102,7 @@ impl Into<Command> for CommandBuilder {
             name: self
                 .name
                 .unwrap_or_else(|| panic!("Missing name for command")),
-            aliases: self.aliases.unwrap_or(Vec::new()),
+            aliases: self.aliases.unwrap_or_default(),
             chainable: self.chainable.unwrap_or(false),
             whitelisted: self.whitelisted.unwrap_or(false),
             description: self.description.unwrap_or("description missing"),
@@ -152,6 +153,7 @@ impl CommandBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub fn whitelisted(mut self) -> Self {
         self.whitelisted = Some(true);
         self

@@ -12,6 +12,7 @@ pub struct CommandHandler {
     /// The prefix to use when checking for commands in a message.
     prefix: char,
 
+    #[allow(dead_code)]
     context: Arc<Context>,
 }
 
@@ -109,7 +110,7 @@ pub fn new(context: Arc<Context>) -> CommandHandler {
     use super::befehle;
     let mut ch = CommandHandler::new(context.clone());
 
-    ch.add_all(befehle::all(context.clone()));
+    ch.add_all(befehle::all(context));
 
     ch
 }

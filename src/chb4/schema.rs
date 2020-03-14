@@ -85,7 +85,7 @@ table! {
         receiver_id -> Int4,
         created -> Timestamp,
         scheduled -> Nullable<Timestamp>,
-        active -> Nullable<Bool>,
+        active -> Bool,
         message -> Varchar,
     }
 }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::models::{Channel, NewChannel, NewUserWithName, User};
+use crate::models::{Channel, NewChannel, User};
 use crate::schema::*;
 use diesel::prelude::*;
 use diesel::PgConnection;
@@ -124,10 +124,7 @@ pub fn by_name<'a>(conn: &PgConnection, name: &'a str) -> Result<Channel> {
 pub fn join<'a>(conn: &PgConnection, name: &'a str) -> Result<()> {
     let user = match user::by_name(conn, name)? {
         Some(u) => u,
-        None => diesel::insert_into(users::table)
-            .values(&NewUserWithName { name })
-            .get_result(conn)
-            .context(CreateUserWithName { name })?,
+        None => user::with_name(conn, name)?,
     };
 
     if user.channel_id.is_none() {
