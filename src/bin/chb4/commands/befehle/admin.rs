@@ -23,6 +23,8 @@ pub fn command(context: Arc<Context>) -> Command {
         .description(
             "has various sub commands to do admin stuff.
 
+This is a owner only command!
+
 USAGE: admin SUBCOMMAND
 
 SUBCOMMANDS:

@@ -40,5 +40,19 @@ pub fn command(context: Arc<Context>) -> Command {
                 Err(e) => CommandResult::Error(e.to_string()),
             }
         })
+        .description(
+            "send other users a message.
+
+USAGE: tell RECIPIENTS [SCHEDULE] MESSAGE
+
+RECIPIENTS:
+    A separated list of recipients. Valid separators are `and`, `und`, `&&` and `,`.
+
+SCHEDLUE:
+    Either relative or absolute. 
+    * A relative schedule is something like `in 20 minutes` and requires a `in` before any times.
+    * A absoulte schedule is something like `on 2020-03-11` and requires a `at` or `on` befor the time.
+",
+        )
         .done()
 }
