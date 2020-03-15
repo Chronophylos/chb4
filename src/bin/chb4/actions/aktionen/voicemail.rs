@@ -5,10 +5,17 @@ use snafu::{OptionExt, ResultExt, Snafu};
 
 #[derive(Snafu, Debug)]
 enum Error {
+    #[snafu(display("Getting receiver: {}", source))]
     GetReceiver { source: user::Error },
-    ReceiverNotFound,
+
+    #[snafu(display("Receiver not found (id: {})", id))]
+    ReceiverNotFound { id: i32 },
+
+    #[snafu(display("Getting creator: {}", source))]
     GetCreator { source: user::Error },
-    CreatorNotFound,
+
+    #[snafu(display("Creator not found (id: {})", id))]
+    CreatorNotFound { id: i32 },
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -38,7 +45,7 @@ fn format_voicemails(context: Arc<Context>, voicemails: Vec<Voicemail>) -> Resul
     let receiver_id = voicemails[0].receiver_id;
     let receiver = user::by_id(&context.conn(), receiver_id)
         .context(GetReceiver)?
-        .context(ReceiverNotFound)?;
+        .context(ReceiverNotFound { id: receiver_id })?;
 
     let voicemails: Vec<_> = voicemails
         .iter()
@@ -56,7 +63,9 @@ fn format_voicemails(context: Arc<Context>, voicemails: Vec<Voicemail>) -> Resul
 fn format_voicemail(context: Arc<Context>, voicemail: &Voicemail) -> Result<String> {
     let creator = user::by_id(&context.conn(), voicemail.creator_id)
         .context(GetCreator)?
-        .context(CreatorNotFound)?;
+        .context(CreatorNotFound {
+            id: voicemail.creator_id,
+        })?;
 
     Ok(format!(
         "{}, {}: {}",

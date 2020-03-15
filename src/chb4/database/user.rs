@@ -37,7 +37,8 @@ pub enum Error {
         source: diesel::result::Error,
     },
 
-    CreateUserWithName {
+    #[snafu(display("Insert empty user with name (name: {}): {}", name, source))]
+    InsertUserWithName {
         name: String,
         source: diesel::result::Error,
     },
@@ -93,7 +94,7 @@ pub fn with_name(conn: &PgConnection, name: &str) -> Result<User> {
     diesel::insert_into(users::table)
         .values(&NewUserWithName { name })
         .get_result(conn)
-        .context(CreateUserWithName { name })
+        .context(InsertUserWithName { name })
 }
 
 // TODO: check if the logic can be offloaded to the database
