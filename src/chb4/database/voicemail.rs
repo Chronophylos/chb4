@@ -92,7 +92,11 @@ pub fn pop(conn: &PgConnection, twitch_id: i64) -> Result<Vec<Voicemail>> {
         .context(ReceiverNotFound)?;
 
     let vms = Voicemail::belonging_to(&receiver)
-        .filter(voicemails::active.eq(true))
+        .filter(
+            voicemails::active
+                .eq(true)
+                .and(voicemails::scheduled.eq::<Option<NaiveDateTime>>(None)),
+        )
         .get_results(conn)
         .context(GetActiveVoicemailsForUser { twitch_id })?;
 
