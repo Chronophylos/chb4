@@ -1,4 +1,4 @@
-use super::super::action::{Action, ActionResult};
+use super::prelude::*;
 use rand::prelude::*;
 
 pub fn action() -> Action {

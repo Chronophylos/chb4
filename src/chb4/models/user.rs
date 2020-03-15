@@ -38,6 +38,13 @@ impl User {
             Some(until) => now.naive_utc() < until,
         }
     }
+
+    pub fn display_name_or_name(&self) -> String {
+        self.display_name
+            .clone()
+            .or_else(|| Some(self.name.clone()))
+            .unwrap()
+    }
 }
 
 #[derive(Insertable)]

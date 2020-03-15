@@ -18,6 +18,12 @@ pub enum Error {
         source: diesel::result::Error,
     },
 
+    #[snafu(display("Getting user (id: {}): {}", id, source))]
+    GetUserByID {
+        id: i32,
+        source: diesel::result::Error,
+    },
+
     #[snafu(display("Insert user (name: {}, id: {}): {}", name, twitch_id, source))]
     InsertUser {
         name: String,
@@ -134,4 +140,14 @@ pub fn by_name(conn: &PgConnection, name: &str) -> Result<Option<User>> {
         .get_result(conn)
         .optional()
         .context(GetUserByName { name })
+}
+
+pub fn by_id(conn: &PgConnection, id: i32) -> Result<Option<User>> {
+    trace!("Getting user (id: {})", id);
+
+    users::table
+        .filter(users::id.eq(id))
+        .get_result(conn)
+        .optional()
+        .context(GetUserByID { id })
 }
