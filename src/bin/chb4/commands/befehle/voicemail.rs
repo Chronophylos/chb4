@@ -10,7 +10,7 @@ pub fn command(context: Arc<Context>) -> Command {
     Command::with_name("voicemail")
         .alias("tell")
         .command(move |args, msg| {
-            let user_id = msg.user_id().unwrap() as i32;
+            let user_id = msg.user_id().unwrap();
             let line = args.join(" ");
             let voicemail: Voicemail = match line.parse() {
                 Ok(v) => v,
@@ -20,7 +20,7 @@ pub fn command(context: Arc<Context>) -> Command {
             match database::voicemail::new(
                 &context.conn(),
                 &voicemail,
-                user_id,
+                user_id as i64,
                 Utc::now().naive_utc(),
             ) {
                 Ok(_) => {

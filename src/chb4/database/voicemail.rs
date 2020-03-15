@@ -5,13 +5,15 @@ use crate::voicemail::Voicemail as ParsedVoicemail;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::PgConnection;
-use snafu::{ResultExt, Snafu};
+use snafu::{OptionExt, ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     GetCreatorByTwitchID {
         source: user::Error,
     },
+
+    CreatorNotFound,
 
     GetReceiverByName {
         source: user::Error,
@@ -43,13 +45,15 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub fn new(
     conn: &PgConnection,
     parsed_voicemail: &ParsedVoicemail,
-    twitch_id: i32,
+    twitch_id: i64,
     now: NaiveDateTime,
 ) -> Result<Vec<Voicemail>> {
     trace!("Creating new voicemails");
 
     let mut new_voicemails: Vec<NewVoicemail> = Vec::new();
-    let creator = user::by_twitch_id(conn, twitch_id).context(GetCreatorByTwitchID)?;
+    let creator = user::by_twitch_id(conn, twitch_id)
+        .context(GetCreatorByTwitchID)?
+        .context(CreatorNotFound)?;
 
     for receiver_name in &parsed_voicemail.recipients {
         let receiver = match user::by_name(conn, receiver_name).context(GetReceiverByName)? {
