@@ -1,11 +1,12 @@
 use config::Config;
 use diesel::prelude::*;
-use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::{ConnectionManager, PooledConnection};
 use futures_executor::block_on;
 use std::sync::Arc;
 use twitchchat::Client;
 
 type Pool = diesel::r2d2::Pool<ConnectionManager<PgConnection>>;
+type Conn = PooledConnection<ConnectionManager<PgConnection>>;
 
 #[derive(Clone)]
 pub struct Context {
@@ -25,6 +26,10 @@ impl Context {
 
     pub fn pool(&self) -> &Pool {
         &self.pool
+    }
+
+    pub fn conn(&self) -> Conn {
+        self.pool.get().unwrap()
     }
 
     pub fn config(&self) -> &Config {
