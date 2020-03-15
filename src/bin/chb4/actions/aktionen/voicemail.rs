@@ -23,7 +23,7 @@ type Result<T> = std::result::Result<T, Error>;
 pub fn action(context: Arc<Context>) -> Action {
     Action::with_name("voicemail")
         .command(move |msg| {
-            let user_id = msg.user_id().unwrap() as i32;
+            let user_id = msg.user_id().unwrap() as i64;
             let voicemails = match voicemail::pop(&context.conn(), user_id) {
                 Ok(v) => v,
                 Err(e) => return ActionResult::Error(e.to_string()),
@@ -56,7 +56,7 @@ fn format_voicemails(context: Arc<Context>, voicemails: Vec<Voicemail>) -> Resul
         .collect::<Result<Vec<_>>>()?;
 
     Ok(format!(
-        "{}, {} messages for you: {}",
+        "{}, {} message(s) for you: {}",
         receiver.display_name_or_name(),
         voicemails.len(),
         voicemails.join(" – ")

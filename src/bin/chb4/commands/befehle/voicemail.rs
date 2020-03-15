@@ -12,10 +12,13 @@ pub fn command(context: Arc<Context>) -> Command {
         .command(move |args, msg| {
             let user_id = msg.user_id().unwrap();
             let line = args.join(" ");
-            let voicemail: Voicemail = match line.parse() {
+            let mut voicemail: Voicemail = match line.parse() {
                 Ok(v) => v,
                 Err(e) => return CommandResult::Message(format!("{:?}", e)),
             };
+
+            let bot_name = context.bot_name();
+            voicemail.recipients.retain(|x| x != &bot_name);
 
             match database::voicemail::new(
                 &context.conn(),

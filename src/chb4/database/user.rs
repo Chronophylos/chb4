@@ -89,7 +89,7 @@ pub fn new(
 }
 
 pub fn with_name(conn: &PgConnection, name: &str) -> Result<User> {
-    trace!("Creating new empty user with name (name: {}", name);
+    trace!("Creating new empty user with name (name: {})", name);
 
     diesel::insert_into(users::table)
         .values(&NewUserWithName { name })

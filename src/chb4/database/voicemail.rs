@@ -19,6 +19,12 @@ pub enum Error {
         source: user::Error,
     },
 
+    GetReceiverByTwitchID {
+        source: user::Error,
+    },
+
+    ReceiverNotFound,
+
     CreateReceiverWithName {
         source: user::Error,
     },
@@ -30,12 +36,12 @@ pub enum Error {
     },
 
     GetActiveVoicemailsForUser {
-        twitch_id: i32,
+        twitch_id: i64,
         source: diesel::result::Error,
     },
 
     SetVoicemailToInactive {
-        twitch_id: i32,
+        twitch_id: i64,
         source: diesel::result::Error,
     },
 }
@@ -78,15 +84,15 @@ pub fn new(
         })
 }
 
-pub fn pop(conn: &PgConnection, twitch_id: i32) -> Result<Vec<Voicemail>> {
+pub fn pop(conn: &PgConnection, twitch_id: i64) -> Result<Vec<Voicemail>> {
     trace!("Popping voicemails (twitch_id: {})", twitch_id);
 
-    let vms = voicemails::table
-        .filter(
-            voicemails::receiver_id
-                .eq(twitch_id)
-                .and(voicemails::active.eq(true)),
-        )
+    let receiver = user::by_twitch_id(conn, twitch_id)
+        .context(GetReceiverByTwitchID)?
+        .context(ReceiverNotFound)?;
+
+    let vms = Voicemail::belonging_to(&receiver)
+        .filter(voicemails::active.eq(true))
         .get_results(conn)
         .context(GetActiveVoicemailsForUser { twitch_id })?;
 

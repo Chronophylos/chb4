@@ -1,7 +1,9 @@
+use super::user::User;
 use crate::schema::*;
 use chrono::prelude::*;
 
-#[derive(Queryable, Identifiable)]
+#[derive(Queryable, Identifiable, Associations, Debug)]
+#[belongs_to(User, foreign_key = "receiver_id")]
 #[table_name = "voicemails"]
 pub struct Voicemail {
     pub id: i32,

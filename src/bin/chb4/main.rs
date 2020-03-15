@@ -79,7 +79,7 @@ async fn main() {
     info!("Created Command Handler");
 
     // get nick and password from config
-    let nick = context.config().get_str("twitch.nick").unwrap();
+    let nick = context.bot_name();
     let pass = context.config().get_str("twitch.pass").unwrap();
     let channel = nick.clone();
 

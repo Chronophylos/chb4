@@ -36,6 +36,10 @@ impl Context {
         &self.config
     }
 
+    pub fn bot_name(&self) -> String {
+        self.config.get_str("twitch.nick").unwrap()
+    }
+
     pub fn chat(&self) -> &Client {
         &self.chat
     }
