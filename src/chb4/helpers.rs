@@ -10,7 +10,6 @@ use twitchchat::messages::Privmsg;
 pub enum Error {
     GetUserFromDatabase { source: database::user::Error },
     GetIDFromMessage,
-    GetDBConn { source: r2d2::Error },
     ConvertUserID { source: std::num::TryFromIntError },
     UserNotFound,
 }
@@ -43,7 +42,7 @@ impl Permission {
     pub fn from(context: Arc<Context>, msg: Arc<Privmsg<'_>>) -> Result<Self> {
         let uid = msg.user_id().context(GetIDFromMessage)?;
         let id: i64 = uid.try_into().context(ConvertUserID)?;
-        let conn = context.pool().get().context(GetDBConn)?;
+        let conn = context.conn();
         let user = match database::user::by_twitch_id(&conn, id).context(GetUserFromDatabase)? {
             Some(u) => u,
             None => return Err(Error::UserNotFound),

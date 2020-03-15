@@ -18,7 +18,7 @@ pub fn command(context: Arc<Context>) -> Command {
             };
 
             match database::voicemail::new(
-                &context.pool().get().unwrap(),
+                &context.conn(),
                 &voicemail,
                 user_id,
                 Utc::now().naive_utc(),

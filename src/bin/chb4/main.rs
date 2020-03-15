@@ -128,7 +128,7 @@ async fn main() {
                     let now = Local::now();
 
                     let user = match database::user::bump(
-                        &context.pool().get().unwrap(),
+                        &context.conn(),
                         user_id,
                         &name,
                         &display_name,
@@ -194,7 +194,7 @@ async fn main() {
         let mut handles = Vec::new();
         context.join_channel(channel).await;
 
-        for channel in database::channel::all_enabled(&context.pool().get().unwrap()).unwrap() {
+        for channel in database::channel::all_enabled(&context.conn()).unwrap() {
             let handle = context.join_channel(channel);
             handles.push(handle);
         }
