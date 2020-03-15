@@ -9,6 +9,10 @@ use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
+    GetCreatorByTwitchID {
+        source: user::Error,
+    },
+
     GetReceiverByName {
         source: user::Error,
     },
@@ -17,7 +21,9 @@ pub enum Error {
         source: user::Error,
     },
 
+    #[snafu(display("Inserting new voicemails (voicemails: {:#?}): {}", voicemails, source))]
     InsertVoicemails {
+        voicemails: Vec<NewVoicemail>,
         source: diesel::result::Error,
     },
 
@@ -37,12 +43,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub fn new(
     conn: &PgConnection,
     parsed_voicemail: &ParsedVoicemail,
-    creator_id: i32,
+    twitch_id: i32,
     now: NaiveDateTime,
 ) -> Result<Vec<Voicemail>> {
     trace!("Creating new voicemails");
 
     let mut new_voicemails: Vec<NewVoicemail> = Vec::new();
+    let creator = user::by_twitch_id(conn, twitch_id).context(GetCreatorByTwitchID)?;
 
     for receiver_name in &parsed_voicemail.recipients {
         let receiver = match user::by_name(conn, receiver_name).context(GetReceiverByName)? {
@@ -51,7 +58,7 @@ pub fn new(
         };
 
         new_voicemails.push(NewVoicemail {
-            creator_id,
+            creator_id: creator.id,
             receiver_id: receiver.id,
             created: now,
             scheduled: parsed_voicemail.schedule,
@@ -62,7 +69,9 @@ pub fn new(
     diesel::insert_into(voicemails::table)
         .values(&new_voicemails)
         .get_results(conn)
-        .context(InsertVoicemails)
+        .context(InsertVoicemails {
+            voicemails: new_voicemails,
+        })
 }
 
 pub fn pop(conn: &PgConnection, twitch_id: i32) -> Result<Vec<Voicemail>> {

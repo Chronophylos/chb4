@@ -30,8 +30,11 @@ pub fn action(context: Arc<Context>) -> Action {
             };
 
             if voicemails.is_empty() {
+                trace!("No voicemails found");
                 return ActionResult::NoMessage;
             }
+
+            trace!("Found {} voicemails", voicemails.len());
 
             match format_voicemails(context.clone(), voicemails) {
                 Ok(m) => ActionResult::Message(m),

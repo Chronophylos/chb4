@@ -13,7 +13,7 @@ pub struct Voicemail {
     pub message: String,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Debug)]
 #[table_name = "voicemails"]
 pub struct NewVoicemail {
     pub creator_id: i32,
