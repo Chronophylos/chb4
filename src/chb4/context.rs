@@ -1,12 +1,13 @@
 use config::Config;
-use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use futures_executor::block_on;
 use std::sync::Arc;
 use twitchchat::Client;
 
-type Pool = diesel::r2d2::Pool<ConnectionManager<PgConnection>>;
-type Conn = PooledConnection<ConnectionManager<PgConnection>>;
+pub type Connection = crate::database::Connection;
+
+type Pool = diesel::r2d2::Pool<ConnectionManager<Connection>>;
+type Conn = PooledConnection<ConnectionManager<Connection>>;
 
 #[derive(Clone)]
 pub struct Context {

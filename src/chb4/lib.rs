@@ -2,6 +2,7 @@
 extern crate diesel;
 #[macro_use]
 extern crate log;
+extern crate futures_delay_queue;
 extern crate futures_executor;
 extern crate lazy_static;
 extern crate nom;

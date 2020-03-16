@@ -1,10 +1,10 @@
 use super::user;
+use super::Connection;
 use crate::models::{NewVoicemail, Voicemail};
 use crate::schema::*;
 use crate::voicemail::Voicemail as ParsedVoicemail;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use diesel::PgConnection;
 use snafu::{OptionExt, ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
@@ -44,12 +44,16 @@ pub enum Error {
         twitch_id: i64,
         source: diesel::result::Error,
     },
+
+    GetVoicemailByID {
+        id: i32,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn new(
-    conn: &PgConnection,
+    conn: &Connection,
     parsed_voicemail: &ParsedVoicemail,
     twitch_id: i64,
     now: NaiveDateTime,
@@ -84,7 +88,7 @@ pub fn new(
         })
 }
 
-pub fn pop(conn: &PgConnection, twitch_id: i64) -> Result<Vec<Voicemail>> {
+pub fn pop(conn: &Connection, twitch_id: i64) -> Result<Vec<Voicemail>> {
     trace!("Popping voicemails (twitch_id: {})", twitch_id);
 
     let receiver = user::by_twitch_id(conn, twitch_id)
@@ -108,4 +112,14 @@ pub fn pop(conn: &PgConnection, twitch_id: i64) -> Result<Vec<Voicemail>> {
     }
 
     Ok(vms)
+}
+
+pub fn by_id(conn: &Connection, id: i32) -> Result<Option<Voicemail>> {
+    trace!("Getting voicemail (id: {})", id);
+
+    voicemails::table
+        .filter(voicemails::id.eq(id))
+        .get_result(conn)
+        .optional()
+        .context(GetVoicemailByID { id })
 }
