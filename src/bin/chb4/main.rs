@@ -15,7 +15,7 @@ mod actions;
 mod commands;
 
 use chb4::context::Context;
-use chb4::database;
+use chb4::database::{Channel, User};
 
 use chrono::prelude::*;
 use config::{Config, Environment, File, FileFormat};
@@ -127,19 +127,14 @@ async fn main() {
                     let display_name = msg.display_name().unwrap();
                     let now = Local::now();
 
-                    let user = match database::user::bump(
-                        &context.conn(),
-                        user_id,
-                        &name,
-                        &display_name,
-                        &now,
-                    ) {
-                        Ok(u) => u,
-                        Err(e) => {
-                            error!("{}", e);
-                            continue;
-                        }
-                    };
+                    let user =
+                        match User::bump(&context.conn(), user_id, &name, &display_name, &now) {
+                            Ok(u) => u,
+                            Err(e) => {
+                                error!("{}", e);
+                                continue;
+                            }
+                        };
 
                     if user.banned(&now) {
                         trace!("User {} is banned. Ignoring message.", user.name);
@@ -194,7 +189,7 @@ async fn main() {
         let mut handles = Vec::new();
         context.join_channel(channel).await;
 
-        for channel in database::channel::all_enabled(&context.conn()).unwrap() {
+        for channel in Channel::all_enabled(&context.conn()).unwrap() {
             let handle = context.join_channel(channel);
             handles.push(handle);
         }

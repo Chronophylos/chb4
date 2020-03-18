@@ -1,9 +1,12 @@
-use crate::models::{EditQuote, NewQuote, Quote};
+use super::{Connection, User};
 use crate::schema::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use diesel::PgConnection;
 use snafu::{ResultExt, Snafu};
+use std::{
+    fmt,
+    fmt::{Display, Formatter},
+};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -31,67 +34,108 @@ pub enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-pub fn new<'a>(
-    conn: &PgConnection,
-    creator_id: i32,
-    author: &'a str,
-    authored: &'a str,
-    message: &'a str,
-) -> Result<Quote> {
-    trace!("Creating new quote");
-
-    let quote = diesel::insert_into(quotes::table)
-        .values(&NewQuote {
-            creator_id,
-            created: &Utc::now().naive_utc(),
-            author,
-            authored,
-            message,
-        })
-        .get_result(conn)
-        .context(InsertQuote)?;
-
-    Ok(quote)
+#[derive(Queryable, Identifiable, Associations)]
+#[belongs_to(User, foreign_key = "creator_id")]
+#[table_name = "quotes"]
+pub struct Quote {
+    pub id: i32,
+    pub creator_id: i32,
+    pub created: NaiveDateTime,
+    pub author: String,
+    pub authored: String,
+    pub message: String,
 }
 
-pub fn update<'a>(
-    conn: &PgConnection,
-    quote: &Quote,
-    author: &'a str,
-    authored: &'a str,
-    message: &'a str,
-) -> Result<Quote> {
-    trace!("Updating quote (id: {})", quote.id);
-
-    let quote = diesel::update(quote)
-        .set(&EditQuote {
-            author,
-            authored,
-            message,
-        })
-        .get_result(conn)
-        .context(UpdateQuote { id: quote.id })?;
-
-    Ok(quote)
+impl Display for Quote {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "\"{}\" - {} {}",
+            self.message, self.author, self.authored
+        )
+    }
 }
 
-pub fn by_id(conn: &PgConnection, id: i32) -> Result<Option<Quote>> {
-    trace!("Getting quote (id: {})", id);
+impl Quote {
+    pub fn new<'a>(
+        conn: &Connection,
+        creator_id: i32,
+        author: &'a str,
+        authored: &'a str,
+        message: &'a str,
+    ) -> Result<Self> {
+        trace!("Creating new quote");
 
-    quotes::table
-        .filter(quotes::id.eq(id))
-        .get_result::<Quote>(conn)
-        .optional()
-        .context(GetQuoteByID { id })
+        let quote = diesel::insert_into(quotes::table)
+            .values(&NewQuote {
+                creator_id,
+                created: &Utc::now().naive_utc(),
+                author,
+                authored,
+                message,
+            })
+            .get_result(conn)
+            .context(InsertQuote)?;
+
+        Ok(quote)
+    }
+
+    pub fn by_id(conn: &Connection, id: i32) -> Result<Option<Self>> {
+        trace!("Getting quote (id: {})", id);
+
+        quotes::table
+            .filter(quotes::id.eq(id))
+            .get_result(conn)
+            .optional()
+            .context(GetQuoteByID { id })
+    }
+
+    pub fn update<'a>(
+        &self,
+        conn: &Connection,
+        author: &'a str,
+        authored: &'a str,
+        message: &'a str,
+    ) -> Result<Self> {
+        trace!("Updating quote (id: {})", self.id);
+
+        let quote = diesel::update(self)
+            .set(&EditQuote {
+                author,
+                authored,
+                message,
+            })
+            .get_result(conn)
+            .context(UpdateQuote { id: self.id })?;
+
+        Ok(quote)
+    }
+
+    pub fn remove(&self, conn: &Connection) -> Result<()> {
+        trace!("Removing quote (id: {})", self.id);
+
+        diesel::delete(self)
+            .execute(conn)
+            .context(RemoveQuote { id: self.id })?;
+
+        Ok(())
+    }
 }
 
-pub fn remove(conn: &PgConnection, id: i32) -> Result<()> {
-    trace!("Removing quote (id: {})", id);
+#[derive(Insertable)]
+#[table_name = "quotes"]
+pub struct NewQuote<'a> {
+    pub creator_id: i32,
+    pub created: &'a NaiveDateTime,
+    pub author: &'a str,
+    pub authored: &'a str,
+    pub message: &'a str,
+}
 
-    diesel::delete(quotes::table)
-        .filter(quotes::id.eq(id))
-        .execute(conn)
-        .context(RemoveQuote { id })?;
-
-    Ok(())
+#[derive(AsChangeset)]
+#[table_name = "quotes"]
+pub struct EditQuote<'a> {
+    pub author: &'a str,
+    pub authored: &'a str,
+    pub message: &'a str,
 }

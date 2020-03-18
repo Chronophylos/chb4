@@ -5,7 +5,7 @@ use snafu::Snafu;
 use std::str::FromStr;
 
 #[derive(Snafu, Debug)]
-enum Error {
+pub enum Error {
     Parser { source: Err<(String, ErrorKind)> },
 }
 
@@ -20,6 +20,7 @@ pub struct Voicemail {
 
 impl FromStr for Voicemail {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self> {
         match parse_voicemail(s) {
             Ok(t) => Ok(t.1),

@@ -17,13 +17,22 @@ pub fn command(context: Arc<Context>) -> Command {
                 Err(e) => return CommandResult::Message(format!("{:?}", e)),
             };
 
+            let conn = &context.conn();
+
+            let channel_name = msg.channel.clone().into_owned();
+            let channel = match database::Channel::by_name(conn, channel_name.as_str()) {
+                Ok(c)=>match c {Some(c)=>c, None=>return CommandResult::Error(format!("Channel not in database (name: {})", msg.channel)),},
+                Err(e)=>return CommandResult::Error(e.to_string()),
+            };
+
             let bot_name = context.bot_name();
             voicemail.recipients.retain(|x| x != &bot_name);
 
-            match database::voicemail::new(
-                &context.conn(),
+            match database::Voicemail::new(
+                conn,
                 &voicemail,
                 user_id as i64,
+                channel.id,
                 Utc::now().naive_utc(),
             ) {
                 Ok(_) => {

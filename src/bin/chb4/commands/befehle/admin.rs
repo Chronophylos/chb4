@@ -1,4 +1,5 @@
 use super::prelude::*;
+use chb4::database::Channel;
 
 use futures_executor::block_on;
 
@@ -50,14 +51,27 @@ fn stop(context: Arc<Context>) -> CommandResult {
 }
 
 fn leave(context: Arc<Context>, args: Vec<String>) -> CommandResult {
-    let channel = match args.get(0) {
+    let name = match args.get(0) {
         Some(c) => c,
         None => return CommandResult::Message(String::from("Missing channel")),
     };
 
-    match database::channel::leave(&context.conn(), &channel) {
+    let conn = &context.conn();
+    let channel = match Channel::by_name(conn, name) {
+        Ok(c) => c,
+        Err(e) => return CommandResult::Error(e.to_string()),
+    };
+
+    let channel = match channel {
+        Some(c) => c,
+        None => return CommandResult::Message(String::from("Channel not found")),
+    };
+
+    context.join_channel_sync(name.to_owned());
+
+    match channel.leave(conn) {
         Err(e) => CommandResult::Error(format!("{:?}", e)),
-        Ok(_) => CommandResult::Message(format!("Left {}", channel)),
+        Ok(_) => CommandResult::Message(format!("left channel {}", name)),
     }
 }
 
@@ -67,7 +81,11 @@ fn join(context: Arc<Context>, args: Vec<String>) -> CommandResult {
         None => return CommandResult::Message(String::from("Missing channel")),
     };
 
-    match database::channel::join(&context.conn(), &channel) {
+    let conn = &context.conn();
+
+    context.join_channel_sync(channel.to_owned());
+
+    match Channel::join(conn, &channel) {
         Err(e) => CommandResult::Error(format!("{:?}", e)),
         Ok(_) => CommandResult::Message(format!("Joined {}", channel)),
     }

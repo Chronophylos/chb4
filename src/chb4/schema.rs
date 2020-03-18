@@ -83,6 +83,7 @@ table! {
         id -> Int4,
         creator_id -> Int4,
         receiver_id -> Int4,
+        channel_id -> Int4,
         created -> Timestamp,
         scheduled -> Nullable<Timestamp>,
         active -> Bool,
@@ -96,6 +97,7 @@ joinable!(copypastas -> users (creator_id));
 joinable!(quotes -> users (creator_id));
 joinable!(users -> channels (channel_id));
 joinable!(users -> user_settings (settings_id));
+joinable!(voicemails -> channels (channel_id));
 
 allow_tables_to_appear_in_same_query!(
     channel_action_filters,

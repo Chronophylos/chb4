@@ -1,8 +1,7 @@
 use super::prelude::*;
 
-use chb4::database;
+use chb4::database::{Quote, User};
 use chb4::helpers::Permission;
-use chb4::models::User;
 use regex::Regex;
 use std::convert::TryInto;
 
@@ -19,7 +18,7 @@ pub fn command(context: Arc<Context>) -> Command {
         .command(move |args: Vec<String>, msg: Arc<Privmsg<'_>>| {
             let user_id = msg.user_id().unwrap().try_into().unwrap();
 
-            let user = match database::user::by_twitch_id(&context.conn(), user_id) {
+            let user = match User::by_twitch_id(&context.conn(), user_id) {
                 Ok(u) => u,
                 Err(e) => return e.into(),
             };
@@ -91,7 +90,7 @@ fn add(
     };
 
     // insert quote
-    let quote = match database::quote::new(&context.conn(), user.id, author, authored, message) {
+    let quote = match Quote::new(&context.conn(), user.id, author, authored, message) {
         Ok(q) => q,
         Err(e) => return e.into(),
     };
@@ -126,8 +125,10 @@ fn remove(
         Err(e) => return e.into(),
     };
 
+    let conn = &context.conn();
+
     // query quote
-    let quote = match database::quote::by_id(&context.conn(), qid) {
+    let quote = match Quote::by_id(conn, qid) {
         Ok(q) => q,
         Err(e) => return e.into(),
     };
@@ -142,7 +143,7 @@ fn remove(
         return CommandResult::Message(String::from("You do not have permissions for this quote"));
     }
 
-    match database::quote::remove(&context.conn(), qid) {
+    match quote.remove(conn) {
         Ok(_) => CommandResult::Message(format!("Removed quote with id {}", qid)),
         Err(e) => e.into(),
     }
@@ -174,8 +175,10 @@ fn edit(
         Err(e) => return e.into(),
     };
 
+    let conn = &context.conn();
+
     // query quote
-    let quote = match database::quote::by_id(&context.conn(), qid) {
+    let quote = match Quote::by_id(conn, qid) {
         Ok(q) => q,
         Err(e) => return e.into(),
     };
@@ -196,7 +199,7 @@ fn edit(
         Result::Err(e) => return CommandResult::Message(e),
     };
 
-    let quote = match database::quote::update(&context.conn(), &quote, author, authored, message) {
+    let quote = match quote.update(conn, author, authored, message) {
         Ok(q) => q,
         Err(e) => return e.into(),
     };
@@ -218,7 +221,7 @@ fn show(context: Arc<Context>, qid: Option<&str>) -> CommandResult {
     };
 
     // query quote
-    let quote = match database::quote::by_id(&context.conn(), qid) {
+    let quote = match Quote::by_id(&context.conn(), qid) {
         Ok(q) => q,
         Err(e) => return e.into(),
     };

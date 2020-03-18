@@ -1,6 +1,6 @@
+mod parsed;
 mod parser;
 mod scheduler;
-mod voicemail;
 
+pub use parsed::Voicemail;
 pub use scheduler::Scheduler;
-pub use voicemail::Voicemail;

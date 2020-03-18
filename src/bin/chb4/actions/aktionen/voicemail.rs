@@ -1,12 +1,20 @@
 use super::prelude::*;
-use chb4::database::{user, voicemail};
-use chb4::models::Voicemail;
+use chb4::database::{User, Voicemail};
 
 pub fn action(context: Arc<Context>) -> Action {
     Action::with_name("voicemail")
         .command(move |msg| {
             let user_id = msg.user_id().unwrap() as i64;
-            let voicemails = match voicemail::pop(&context.conn(), user_id) {
+            let conn = &context.conn();
+            let user = match User::by_twitch_id(conn, user_id) {
+                Ok(u) => match u {
+                    Some(u) => u,
+                    None => return ActionResult::Error(String::from("User not found")),
+                },
+                Err(e) => return ActionResult::Error(e.to_string()),
+            };
+
+            let voicemails = match user.pop(conn) {
                 Ok(v) => v,
                 Err(e) => return ActionResult::Error(e.to_string()),
             };
@@ -18,7 +26,7 @@ pub fn action(context: Arc<Context>) -> Action {
 
             trace!("Found {} voicemails", voicemails.len());
 
-            match format_voicemails(context.clone(), voicemails) {
+            match Voicemail::format_vec(conn, voicemails) {
                 Ok(m) => ActionResult::Message(m),
                 Err(e) => ActionResult::Error(e.to_string()),
             }

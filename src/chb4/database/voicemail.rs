@@ -1,6 +1,4 @@
-use super::user;
-use super::Connection;
-use crate::models::{NewVoicemail, Voicemail};
+use super::{user, Channel, Connection, User};
 use crate::schema::*;
 use crate::voicemail::Voicemail as ParsedVoicemail;
 use chrono::prelude::*;
@@ -9,25 +7,29 @@ use snafu::{OptionExt, ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    GetCreatorByTwitchID {
-        source: user::Error,
-    },
+    #[snafu(display("Getting receiver (name: {}): {}", name, source))]
+    GetReceiverByName { name: String, source: user::Error },
 
-    CreatorNotFound,
+    #[snafu(display("Getting receiver (id: {}): {}", id, source))]
+    GetReceiverByID { id: i32, source: user::Error },
 
-    GetReceiverByName {
-        source: user::Error,
-    },
+    #[snafu(display("Receiver not found (id: {})", id))]
+    ReceiverNotFound { id: i32 },
 
-    GetReceiverByTwitchID {
-        source: user::Error,
-    },
+    #[snafu(display("Getting creator (id: {}): {}", id, source))]
+    GetCreatorByID { id: i32, source: user::Error },
 
-    ReceiverNotFound,
+    #[snafu(display("Getting creator (twitch_id: {}): {}", twitch_id, source))]
+    GetCreatorByTwitchID { twitch_id: i64, source: user::Error },
 
-    CreateReceiverWithName {
-        source: user::Error,
-    },
+    #[snafu(display("Creator not found (twitch_id: {})", twitch_id))]
+    CreatorNotFoundTID { twitch_id: i64 },
+
+    #[snafu(display("Creator not found (id: {})", id))]
+    CreatorNotFoundID { id: i32 },
+
+    #[snafu(display("Creating receiver (name: {}): ", source))]
+    CreateReceiverWithName { name: String, source: user::Error },
 
     #[snafu(display("Inserting new voicemails (voicemails: {:#?}): {}", voicemails, source))]
     InsertVoicemails {
@@ -35,91 +37,137 @@ pub enum Error {
         source: diesel::result::Error,
     },
 
-    GetActiveVoicemailsForUser {
-        twitch_id: i64,
-        source: diesel::result::Error,
-    },
-
-    SetVoicemailToInactive {
-        twitch_id: i64,
-        source: diesel::result::Error,
-    },
-
+    #[snafu(display("Getting voicemail (id: {}): {}", id, source))]
     GetVoicemailByID {
         id: i32,
+        source: diesel::result::Error,
     },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn new(
-    conn: &Connection,
-    parsed_voicemail: &ParsedVoicemail,
-    twitch_id: i64,
-    now: NaiveDateTime,
-) -> Result<Vec<Voicemail>> {
-    trace!("Creating new voicemails");
-
-    let mut new_voicemails: Vec<NewVoicemail> = Vec::new();
-    let creator = user::by_twitch_id(conn, twitch_id)
-        .context(GetCreatorByTwitchID)?
-        .context(CreatorNotFound)?;
-
-    for receiver_name in &parsed_voicemail.recipients {
-        let receiver = match user::by_name(conn, receiver_name).context(GetReceiverByName)? {
-            Some(u) => u,
-            None => user::with_name(conn, receiver_name).context(CreateReceiverWithName)?,
-        };
-
-        new_voicemails.push(NewVoicemail {
-            creator_id: creator.id,
-            receiver_id: receiver.id,
-            created: now,
-            scheduled: parsed_voicemail.schedule,
-            message: parsed_voicemail.message.clone(),
-        })
-    }
-
-    diesel::insert_into(voicemails::table)
-        .values(&new_voicemails)
-        .get_results(conn)
-        .context(InsertVoicemails {
-            voicemails: new_voicemails,
-        })
+#[derive(Queryable, Identifiable, Associations, Debug)]
+#[belongs_to(User, foreign_key = "receiver_id")]
+#[belongs_to(Channel)]
+#[table_name = "voicemails"]
+pub struct Voicemail {
+    pub id: i32,
+    pub creator_id: i32,
+    pub receiver_id: i32,
+    pub channel_id: i32,
+    pub created: NaiveDateTime,
+    pub scheduled: Option<NaiveDateTime>,
+    pub active: bool,
+    pub message: String,
 }
 
-pub fn pop(conn: &Connection, twitch_id: i64) -> Result<Vec<Voicemail>> {
-    trace!("Popping voicemails (twitch_id: {})", twitch_id);
+impl Voicemail {
+    pub fn new(
+        conn: &Connection,
+        parsed_voicemail: &ParsedVoicemail,
+        twitch_id: i64,
+        channel_id: i32,
+        now: NaiveDateTime,
+    ) -> Result<Vec<Voicemail>> {
+        trace!("Creating new voicemails");
 
-    let receiver = user::by_twitch_id(conn, twitch_id)
-        .context(GetReceiverByTwitchID)?
-        .context(ReceiverNotFound)?;
+        let mut new_voicemails: Vec<NewVoicemail> = Vec::new();
+        let creator = User::by_twitch_id(conn, twitch_id)
+            .context(GetCreatorByTwitchID { twitch_id })?
+            .context(CreatorNotFoundTID { twitch_id })?;
 
-    let vms = Voicemail::belonging_to(&receiver)
-        .filter(
-            voicemails::active
-                .eq(true)
-                .and(voicemails::scheduled.eq::<Option<NaiveDateTime>>(None)),
-        )
-        .get_results(conn)
-        .context(GetActiveVoicemailsForUser { twitch_id })?;
+        for name in &parsed_voicemail.recipients {
+            let receiver = match User::by_name(conn, name).context(GetReceiverByName { name })? {
+                Some(u) => u,
+                None => User::with_name(conn, name).context(CreateReceiverWithName { name })?,
+            };
 
-    for voicemail in &vms {
-        diesel::update(voicemail)
-            .set(voicemails::active.eq(false))
-            .execute(conn)
-            .context(SetVoicemailToInactive { twitch_id })?;
+            new_voicemails.push(NewVoicemail {
+                creator_id: creator.id,
+                receiver_id: receiver.id,
+                channel_id,
+                created: now,
+                scheduled: parsed_voicemail.schedule,
+                message: parsed_voicemail.message.clone(),
+            })
+        }
+
+        diesel::insert_into(voicemails::table)
+            .values(&new_voicemails)
+            .get_results(conn)
+            .context(InsertVoicemails {
+                voicemails: new_voicemails,
+            })
     }
 
-    Ok(vms)
+    pub fn by_id(conn: &Connection, id: i32) -> Result<Option<Voicemail>> {
+        trace!("Getting voicemail (id: {})", id);
+
+        voicemails::table
+            .filter(voicemails::id.eq(id))
+            .get_result(conn)
+            .optional()
+            .context(GetVoicemailByID { id })
+    }
+
+    pub fn to_string(&self, conn: &Connection) -> String {
+        match Self::format(conn, self) {
+            Ok(s) => s,
+            Err(e) => e.to_string(),
+        }
+    }
+
+    fn format(conn: &Connection, voicemail: &Voicemail) -> Result<String> {
+        let creator = User::by_id(conn, voicemail.creator_id)
+            .context(GetCreatorByID {
+                id: voicemail.creator_id,
+            })?
+            .context(CreatorNotFoundID {
+                id: voicemail.creator_id,
+            })?;
+
+        Ok(format!(
+            "{}, {}: {}",
+            creator.display_name_or_name(),
+            voicemail.created,
+            voicemail.message
+        ))
+    }
+
+    pub fn format_vec(conn: &Connection, voicemails: Vec<Voicemail>) -> Result<String> {
+        let receiver_id = voicemails[0].receiver_id;
+        let receiver = User::by_id(conn, receiver_id)
+            .context(GetReceiverByID { id: receiver_id })?
+            .context(ReceiverNotFound { id: receiver_id })?;
+
+        let voicemails: Vec<_> = voicemails
+            .iter()
+            .map(|v| Self::format(conn, v))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(format!(
+            "{}, {} message(s) for you: {}",
+            receiver.display_name_or_name(),
+            voicemails.len(),
+            voicemails.join(" – ")
+        ))
+    }
 }
 
-pub fn by_id(conn: &Connection, id: i32) -> Result<Option<Voicemail>> {
-    trace!("Getting voicemail (id: {})", id);
+#[derive(Insertable, Debug)]
+#[table_name = "voicemails"]
+pub struct NewVoicemail {
+    pub creator_id: i32,
+    pub receiver_id: i32,
+    pub channel_id: i32,
+    pub created: NaiveDateTime,
+    pub scheduled: Option<NaiveDateTime>,
+    pub message: String,
+}
 
-    voicemails::table
-        .filter(voicemails::id.eq(id))
-        .get_result(conn)
-        .optional()
-        .context(GetVoicemailByID { id })
+#[derive(Identifiable, AsChangeset)]
+#[table_name = "voicemails"]
+pub struct SetActiveVoicemail {
+    pub id: i32,
+    pub active: bool,
 }

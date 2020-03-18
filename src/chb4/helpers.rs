@@ -1,6 +1,5 @@
 use crate::context::Context;
-use crate::database;
-use crate::models::User;
+use crate::database::{user, User};
 use snafu::{OptionExt, ResultExt, Snafu};
 use std::convert::TryInto;
 use std::sync::Arc;
@@ -8,7 +7,7 @@ use twitchchat::messages::Privmsg;
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    GetUserFromDatabase { source: database::user::Error },
+    GetUser { source: user::Error },
     GetIDFromMessage,
     ConvertUserID { source: std::num::TryFromIntError },
     UserNotFound,
@@ -43,7 +42,7 @@ impl Permission {
         let uid = msg.user_id().context(GetIDFromMessage)?;
         let id: i64 = uid.try_into().context(ConvertUserID)?;
         let conn = context.conn();
-        let user = match database::user::by_twitch_id(&conn, id).context(GetUserFromDatabase)? {
+        let user = match User::by_twitch_id(&conn, id).context(GetUser)? {
             Some(u) => u,
             None => return Err(Error::UserNotFound),
         };

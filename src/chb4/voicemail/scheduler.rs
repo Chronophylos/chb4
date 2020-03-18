@@ -1,6 +1,5 @@
 use crate::context::Context;
-use crate::database::voicemail;
-use crate::models::Voicemail;
+use crate::database::{Channel, Voicemail};
 use chrono::prelude::*;
 use futures_delay_queue::{delay_queue, DelayQueue, Receiver};
 
@@ -21,7 +20,7 @@ impl Scheduler {
         }
     }
 
-    async fn run(&self) {
+    pub async fn run(&self) {
         loop {
             if let Some(id) = self.receiver.receive().await {
                 self.show(id).await
@@ -40,13 +39,14 @@ impl Scheduler {
 
     async fn show(&self, id: i32) {
         let conn = &self.context.conn();
-        let v = voicemail::by_id(conn, id).unwrap().unwrap();
-        let channel = channel::by_id(conn, v.channel_id);
-        let channel_name = channel.name(conn);
+        let v = Voicemail::by_id(conn, id).unwrap().unwrap();
+        let channel = Channel::by_id(conn, v.channel_id).unwrap().unwrap();
+        let channel_name = channel.name(conn).unwrap();
         self.context
             .chat()
             .writer()
             .privmsg(channel_name, &v.to_string(conn))
-            .await;
+            .await
+            .unwrap();
     }
 }

@@ -67,6 +67,7 @@ CREATE TABLE voicemails (
     id          SERIAL PRIMARY KEY,
     creator_id  INTEGER REFERENCES users NOT NULL,
     receiver_id INTEGER REFERENCES users NOT NULL,
+    channel_id  INTEGER REFERENCES channels NOT NULL,
     created     TIMESTAMP NOT NULL,
     scheduled   TIMESTAMP NULL,
     active      BOOLEAN NOT NULL DEFAULT true,
