@@ -4,6 +4,7 @@ extern crate diesel;
 extern crate log;
 extern crate futures_delay_queue;
 extern crate futures_executor;
+extern crate humantime;
 extern crate lazy_static;
 extern crate nom;
 extern crate r2d2;

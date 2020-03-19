@@ -1,6 +1,7 @@
 extern crate chrono;
 extern crate config;
 extern crate evalexpr;
+extern crate humantime;
 extern crate hyper;
 #[macro_use]
 extern crate log;
@@ -65,18 +66,18 @@ async fn main() {
     let manager =
         r2d2::ConnectionManager::<PgConnection>::new(config.get_str("database.url").unwrap());
     let pool = r2d2::Pool::builder().build(manager).unwrap();
-    info!("Created Database Pool");
+    debug!("Created Database Pool");
 
     let context = Context::new(config, pool);
+    debug!("Created Bot Context");
 
     let client = context.chat();
 
     let actions = actions::handler::new(context.clone());
-    info!("Created Action Handler");
+    debug!("Created Action Handler");
 
     let commands = commands::handler::new(context.clone());
-
-    info!("Created Command Handler");
+    debug!("Created Command Handler");
 
     // get nick and password from config
     let nick = context.bot_name();
@@ -186,22 +187,25 @@ async fn main() {
     // Join channels. First join the bots channel, then get all enabled channels from the database
     // and join them.
     {
-        let mut handles = Vec::new();
+        let conn = &context.conn();
+        // ensure the bot channel is in the database
+        let _ = Channel::join(conn, &channel); // ignore result
         context.join_channel(channel).await;
 
-        for channel in Channel::all_enabled(&context.conn()).unwrap() {
-            let handle = context.join_channel(channel);
-            handles.push(handle);
-        }
-
-        // Wait until all channels are joined
-        for handle in handles.drain(..) {
-            handle.await;
+        for channel in Channel::all_enabled(conn).unwrap() {
+            context.join_channel(channel).await;
         }
     }
 
     // await for the client to be done
-    match done.await {
+    let (tmi_result, _) = tokio::join!(
+        // await tmi client
+        done,
+        // await scheduler
+        context.scheduler().run(context.clone()),
+    );
+
+    match tmi_result {
         Ok(Status::Eof) => {
             info!("done!");
         }

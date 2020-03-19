@@ -3,33 +3,55 @@ use crate::schema::*;
 use crate::voicemail::Voicemail as ParsedVoicemail;
 use chrono::prelude::*;
 use diesel::prelude::*;
+use humantime::format_duration;
 use snafu::{OptionExt, ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Getting receiver (name: {}): {}", name, source))]
-    GetReceiverByName { name: String, source: user::Error },
+    GetReceiverByName {
+        name: String,
+        source: user::Error,
+    },
 
     #[snafu(display("Getting receiver (id: {}): {}", id, source))]
-    GetReceiverByID { id: i32, source: user::Error },
+    GetReceiverByID {
+        id: i32,
+        source: user::Error,
+    },
 
     #[snafu(display("Receiver not found (id: {})", id))]
-    ReceiverNotFound { id: i32 },
+    ReceiverNotFound {
+        id: i32,
+    },
 
     #[snafu(display("Getting creator (id: {}): {}", id, source))]
-    GetCreatorByID { id: i32, source: user::Error },
+    GetCreatorByID {
+        id: i32,
+        source: user::Error,
+    },
 
     #[snafu(display("Getting creator (twitch_id: {}): {}", twitch_id, source))]
-    GetCreatorByTwitchID { twitch_id: i64, source: user::Error },
+    GetCreatorByTwitchID {
+        twitch_id: i64,
+        source: user::Error,
+    },
 
     #[snafu(display("Creator not found (twitch_id: {})", twitch_id))]
-    CreatorNotFoundTID { twitch_id: i64 },
+    CreatorNotFoundTID {
+        twitch_id: i64,
+    },
 
     #[snafu(display("Creator not found (id: {})", id))]
-    CreatorNotFoundID { id: i32 },
+    CreatorNotFoundID {
+        id: i32,
+    },
 
     #[snafu(display("Creating receiver (name: {}): ", source))]
-    CreateReceiverWithName { name: String, source: user::Error },
+    CreateReceiverWithName {
+        name: String,
+        source: user::Error,
+    },
 
     #[snafu(display("Inserting new voicemails (voicemails: {:#?}): {}", voicemails, source))]
     InsertVoicemails {
@@ -42,11 +64,15 @@ pub enum Error {
         id: i32,
         source: diesel::result::Error,
     },
+
+    UpdateActiveVoicemail {
+        source: diesel::result::Error,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Queryable, Identifiable, Associations, Debug)]
+#[derive(Queryable, Identifiable, AsChangeset, Associations, Debug)]
 #[belongs_to(User, foreign_key = "receiver_id")]
 #[belongs_to(Channel)]
 #[table_name = "voicemails"]
@@ -117,6 +143,17 @@ impl Voicemail {
         }
     }
 
+    pub fn set_active(&self, conn: &Connection, active: bool) -> Result<()> {
+        trace!("Disable voicemail (id: {})", self.id);
+
+        diesel::update(voicemails::table)
+            .filter(voicemails::id.eq(self.id))
+            .set(voicemails::active.eq(active))
+            .execute(conn)
+            .context(UpdateActiveVoicemail)
+            .map(|_| ())
+    }
+
     fn format(conn: &Connection, voicemail: &Voicemail) -> Result<String> {
         let creator = User::by_id(conn, voicemail.creator_id)
             .context(GetCreatorByID {
@@ -127,9 +164,15 @@ impl Voicemail {
             })?;
 
         Ok(format!(
-            "{}, {}: {}",
+            "{}, {} ago: {}",
             creator.display_name_or_name(),
-            voicemail.created,
+            format_duration(
+                Utc::now()
+                    .naive_utc()
+                    .signed_duration_since(voicemail.created)
+                    .to_std()
+                    .unwrap_or_default()
+            ),
             voicemail.message
         ))
     }

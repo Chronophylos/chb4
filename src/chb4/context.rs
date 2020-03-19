@@ -1,3 +1,4 @@
+use crate::voicemail::Scheduler;
 use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use futures_executor::block_on;
@@ -14,6 +15,7 @@ pub struct Context {
     config: Config,
     pool: Pool,
     chat: Client,
+    scheduler: Scheduler,
 }
 
 impl Context {
@@ -22,6 +24,7 @@ impl Context {
             config,
             pool,
             chat: Client::new(),
+            scheduler: Scheduler::new(),
         })
     }
 
@@ -43,6 +46,10 @@ impl Context {
 
     pub fn chat(&self) -> &Client {
         &self.chat
+    }
+
+    pub fn scheduler(&self) -> &Scheduler {
+        &self.scheduler
     }
 
     /// Join channel blocking.

@@ -22,13 +22,14 @@ test = false
 bytes               = { version = "0.5", features = ["serde"] }
 chrono              = "0.4"
 config              = { version = "0.10", default-features = false, features = ["toml"] }
-futures-delay-queue = "0.2"
 diesel              = { version = "1.0", default-features = false, features = ["postgres", "chrono", "r2d2"] }
 diesel_migrations   = "1.4"
 evalexpr            = "5"
 flexi_logger        = "0.15"
+futures-delay-queue = "0.2"
 futures-executor    = "0.3"
 futures-util        = "0.3"
+humantime           = "2"
 hyper               = "0.13"
 lazy_static         = "1.4"
 log                 = "0.4"

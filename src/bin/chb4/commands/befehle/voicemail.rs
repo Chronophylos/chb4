@@ -1,6 +1,7 @@
 use super::prelude::*;
 use chb4::voicemail::Voicemail;
 use chrono::prelude::*;
+use humantime::format_duration;
 
 lazy_static! {
     static ref SEPERATORS: Vec<&'static str> = vec!["&&", "and", "und"];
@@ -20,8 +21,11 @@ pub fn command(context: Arc<Context>) -> Command {
             let conn = &context.conn();
 
             let channel_name = msg.channel.clone().into_owned();
-            let channel = match database::Channel::by_name(conn, channel_name.as_str()) {
-                Ok(c)=>match c {Some(c)=>c, None=>return CommandResult::Error(format!("Channel not in database (name: {})", msg.channel)),},
+            let channel = match database::Channel::by_name(conn, channel_name.trim_start_matches('#')) {
+                Ok(c) => match c {
+                    Some(c) => c,
+                    None => return CommandResult::Error(format!("Channel not in database (name: {})", msg.channel)),
+                },
                 Err(e)=>return CommandResult::Error(e.to_string()),
             };
 
@@ -35,17 +39,29 @@ pub fn command(context: Arc<Context>) -> Command {
                 channel.id,
                 Utc::now().naive_utc(),
             ) {
-                Ok(_) => {
+                Ok(voicemails) => {
                     if voicemail.schedule.is_none() {
                         CommandResult::Message(format!(
                             "I'll send that message to {} when they next type in chat.",
                             voicemail.recipients.join(", ")
                         ))
                     } else {
+                        // actually schedule voicemail
+
+                        for voicemail in voicemails {
+                            context.scheduler().schedule(voicemail);
+                        }
+
                         CommandResult::Message(format!(
-                            "I'll send that message to {} on {}",
+                            "I'll send that message to {} in {}",
                             voicemail.recipients.join(", "),
-                            voicemail.schedule.unwrap()
+            format_duration(
+                Utc::now()
+                    .naive_utc()
+                    .signed_duration_since(voicemail.schedule.unwrap())
+                    .to_std()
+                    .unwrap_or_default()
+            ),
                         ))
                     }
                 }
