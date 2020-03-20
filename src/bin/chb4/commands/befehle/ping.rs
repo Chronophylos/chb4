@@ -13,14 +13,16 @@ pub fn command(context: Arc<Context>) -> Command {
                 None => return CommandResult::Error(String::from("Missing TMI_sent_TS")),
             };
             let latency = Duration::from_millis(now - ts);
+            let elapsed = context.elapsed();
 
             CommandResult::Chainable(vec![
                 format!(
                     "Pong! Latency to TMI: {}. The bot has been running for {}",
                     format_duration(latency),
-                    format_duration(truncate_duration(context.elapsed()))
+                    format_duration(truncate_duration(elapsed))
                 ),
                 format!("{}", now - ts),
+                format!("{}", elapsed.as_millis()),
             ])
         })
         .done()
