@@ -18,6 +18,8 @@ pub mod voicemail;
 
 mod documentation;
 mod log_format;
+mod stopwatch;
 
 pub use documentation::Documentation;
 pub use log_format::format;
+pub use stopwatch::Stopwatch;

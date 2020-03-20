@@ -9,6 +9,7 @@ mod admin;
 mod color;
 //mod font;
 mod math;
+mod ping;
 mod quote;
 mod test;
 mod voicemail;
@@ -19,6 +20,7 @@ pub fn all(context: Arc<Context>) -> Vec<Command> {
         color::command(),
         //font::command(),
         math::command(),
+        ping::command(context.clone()),
         quote::command(context.clone()),
         test::command(),
         voicemail::command(context),

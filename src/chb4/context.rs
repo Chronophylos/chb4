@@ -3,6 +3,7 @@ use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use futures_executor::block_on;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use twitchchat::Client;
 
 pub type Connection = crate::database::Connection;
@@ -16,6 +17,7 @@ pub struct Context {
     pool: Pool,
     chat: Client,
     scheduler: Scheduler,
+    clock: Instant,
 }
 
 impl Context {
@@ -25,6 +27,7 @@ impl Context {
             pool,
             chat: Client::new(),
             scheduler: Scheduler::new(),
+            clock: Instant::now(),
         })
     }
 
@@ -50,6 +53,11 @@ impl Context {
 
     pub fn scheduler(&self) -> &Scheduler {
         &self.scheduler
+    }
+
+    /// Get the duration how long ago this context was created
+    pub fn elapsed(&self) -> Duration {
+        self.clock.elapsed()
     }
 
     /// Join channel blocking.

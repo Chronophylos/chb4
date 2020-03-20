@@ -26,6 +26,7 @@ use std::env;
 use twitchchat::{client::Status, events, Secure};
 // so .next() can be used on the EventStream
 // futures::stream::StreamExt will also work
+use chb4::Stopwatch;
 use std::convert::TryInto;
 use tokio::stream::StreamExt as _;
 
@@ -112,12 +113,19 @@ async fn main() {
         // spawn a task to consume the stream
         tokio::task::spawn(async move {
             while let Some(msg) = privmsg.next().await {
+                // this variable name should not be changed.
+                // having no name or _  as name just drops the Stopwatch instantly.
+                // and having no _ infront annoys the compiler
+                let _stopwatch = Stopwatch::new(|d| {
+                    debug!("Handling PRIVMSG took: {}", d);
+                });
+
                 trace!("Got PRIVMSG message");
 
                 if msg.name == nick {
                     // message must be sent by the bot -> ignore it
                     trace!("ignoring PRIVMSG since it was sent by the bot");
-                    break;
+                    continue;
                 }
 
                 // bump the user in database
