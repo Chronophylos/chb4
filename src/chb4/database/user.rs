@@ -198,9 +198,7 @@ impl User {
 
         let vms = Voicemail::belonging_to(self)
             .filter(
-                voicemails::active
-                    .eq(true)
-                    .and(voicemails::scheduled.eq::<Option<NaiveDateTime>>(None)),
+                voicemails::active.eq(true), //.and(voicemails::scheduled.eq::<Option<NaiveDateTime>>(None)),
             )
             .get_results(conn)
             .context(GetActiveVoicemails { id: self.id })?;

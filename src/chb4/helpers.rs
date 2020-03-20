@@ -3,6 +3,7 @@ use crate::database::{user, User};
 use snafu::{OptionExt, ResultExt, Snafu};
 use std::convert::TryInto;
 use std::sync::Arc;
+use std::time::Duration;
 use twitchchat::messages::Privmsg;
 
 #[derive(Debug, Snafu)]
@@ -67,4 +68,8 @@ impl Permission {
 
         Ok(Self::User)
     }
+}
+
+pub fn truncate_duration(dur: Duration) -> Duration {
+    Duration::from_secs(dur.as_secs())
 }

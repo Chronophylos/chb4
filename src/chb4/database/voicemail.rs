@@ -1,4 +1,5 @@
 use super::{user, Channel, Connection, User};
+use crate::helpers::truncate_duration;
 use crate::schema::*;
 use crate::voicemail::Voicemail as ParsedVoicemail;
 use chrono::prelude::*;
@@ -62,6 +63,11 @@ pub enum Error {
     #[snafu(display("Getting voicemail (id: {}): {}", id, source))]
     GetVoicemailByID {
         id: i32,
+        source: diesel::result::Error,
+    },
+
+    #[snafu(display("Getting active and scheduled voicemails: {}", source))]
+    GetActiveScheduledVoicemails {
         source: diesel::result::Error,
     },
 
@@ -136,6 +142,18 @@ impl Voicemail {
             .context(GetVoicemailByID { id })
     }
 
+    pub fn active_scheduled(conn: &Connection) -> Result<Option<Vec<Voicemail>>> {
+        voicemails::table
+            .filter(
+                voicemails::active
+                    .eq(true)
+                    .and(voicemails::scheduled.ne::<Option<NaiveDateTime>>(None)),
+            )
+            .get_results(conn)
+            .optional()
+            .context(GetActiveScheduledVoicemails)
+    }
+
     pub fn to_string(&self, conn: &Connection) -> String {
         match Self::format(conn, self) {
             Ok(s) => s,
@@ -166,14 +184,17 @@ impl Voicemail {
         Ok(format!(
             "{}, {} ago: {}",
             creator.display_name_or_name(),
-            format_duration(
+            format_duration(truncate_duration(
                 Utc::now()
                     .naive_utc()
                     .signed_duration_since(voicemail.created)
                     .to_std()
                     .unwrap_or_default()
-            ),
-            voicemail.message
+            )),
+            match voicemail.message.as_str() {
+                "" => "no message",
+                s => s,
+            }
         ))
     }
 

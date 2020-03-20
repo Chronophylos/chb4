@@ -16,7 +16,7 @@ mod actions;
 mod commands;
 
 use chb4::context::Context;
-use chb4::database::{Channel, User};
+use chb4::database::{Channel, User, Voicemail};
 
 use chrono::prelude::*;
 use config::{Config, Environment, File, FileFormat};
@@ -195,6 +195,31 @@ async fn main() {
         for channel in Channel::all_enabled(conn).unwrap() {
             context.join_channel(channel).await;
         }
+    }
+
+    // schedule voicemails
+    {
+        let context = context.clone();
+        tokio::task::spawn(async move {
+            let conn = &context.conn();
+            let voicemails = match Voicemail::active_scheduled(conn) {
+                Ok(v) => match v {
+                    Some(v) => v,
+                    None => {
+                        info!("no scheduled voicemails found");
+                        return;
+                    }
+                },
+                Err(e) => {
+                    error!("Could not get voicemails for scheduling: {}", e);
+                    return;
+                }
+            };
+
+            for voicemail in voicemails {
+                context.scheduler().schedule(voicemail);
+            }
+        });
     }
 
     // await for the client to be done
