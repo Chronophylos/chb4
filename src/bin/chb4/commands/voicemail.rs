@@ -55,13 +55,13 @@ pub fn command(context: Arc<BotContext>) -> Command {
                         Ok(MessageResult::Message(format!(
                             "I'll send that message to {} in {}",
                             voicemail.recipients.join(", "),
-            format_duration(
-                Utc::now()
-                    .naive_utc()
-                    .signed_duration_since(voicemail.schedule.unwrap())
-                    .to_std()
-                    .unwrap_or_default()
-            ),
+                            format_duration(
+                                    voicemail.schedule
+                                    .unwrap()
+                                    .signed_duration_since(Utc::now().naive_utc())
+                                    .to_std()
+                                    .unwrap_or_default()
+                            ),
                         )))
                     }
                 }
