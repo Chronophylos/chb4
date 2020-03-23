@@ -32,12 +32,13 @@ pub fn command(context: Arc<BotContext>) -> Command {
             let bot_name = context.bot_name();
             voicemail.recipients.retain(|x| x != &bot_name);
 
+            let now = Utc::now().naive_utc();
             match database::Voicemail::new(
                 conn,
                 &voicemail,
                 user_id as i64,
                 channel.id,
-                Utc::now().naive_utc(),
+                now,
             ) {
                 Ok(voicemails) => {
                     if voicemail.schedule.is_none() {
@@ -58,7 +59,7 @@ pub fn command(context: Arc<BotContext>) -> Command {
                             format_duration(
                                     voicemail.schedule
                                     .unwrap()
-                                    .signed_duration_since(Utc::now().naive_utc())
+                                    .signed_duration_since(now)
                                     .to_std()
                                     .unwrap_or_default()
                             ),
