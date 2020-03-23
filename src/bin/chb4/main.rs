@@ -15,20 +15,20 @@ extern crate lazy_static;
 mod actions;
 mod commands;
 
-use chb4::context::Context;
-use chb4::database::{Channel, User, Voicemail};
-
+use chb4::{
+    actions::ActionHandler,
+    commands::CommandHandler,
+    context::BotContext,
+    database::{Channel, User, Voicemail},
+    handler::Handler,
+    Stopwatch,
+};
 use chrono::prelude::*;
 use config::{Config, Environment, File, FileFormat};
-use diesel::r2d2;
-use diesel::PgConnection;
-use std::env;
-use twitchchat::{client::Status, events, Secure};
-// so .next() can be used on the EventStream
-// futures::stream::StreamExt will also work
-use chb4::Stopwatch;
-use std::convert::TryInto;
+use diesel::{r2d2, PgConnection};
+use std::{convert::TryInto, env};
 use tokio::stream::StreamExt as _;
+use twitchchat::{client::Status, events, Secure}; // so .next() can be used on the EventStream
 
 /// The main is currently full of bloat. The plan is to move everything into their own module
 #[tokio::main]
@@ -69,16 +69,18 @@ async fn main() {
     let pool = r2d2::Pool::builder().build(manager).unwrap();
     debug!("Created Database Pool");
 
-    let context = Context::new(config, pool);
+    let context = BotContext::new(config, pool);
     debug!("Created Bot Context");
 
-    let client = context.chat();
-
-    let actions = actions::handler::new(context.clone());
+    let action_handler = ActionHandler::new(context.clone(), actions::all(context.clone()));
     debug!("Created Action Handler");
 
-    let commands = commands::handler::new(context.clone());
+    let command_handler = CommandHandler::new(context.clone(), commands::all(context.clone()));
     debug!("Created Command Handler");
+
+    let handlers: Vec<Box<dyn Handler>> = vec![Box::new(action_handler), Box::new(command_handler)];
+
+    let client = context.chat();
 
     // get nick and password from config
     let nick = context.bot_name();
@@ -106,8 +108,6 @@ async fn main() {
         // for privmsg (what users send to channels)
         let mut privmsg = client.dispatcher().await.subscribe::<events::Privmsg>();
 
-        // we can move the client to another task by cloning it
-        let bot_client = client.clone();
         let context = context.clone();
 
         // spawn a task to consume the stream
@@ -129,7 +129,7 @@ async fn main() {
                 }
 
                 // bump the user in database
-                {
+                let user = {
                     // todo check all of the unwraps for errors
                     let user_id = msg.user_id().unwrap().try_into().unwrap();
                     let name = msg.name.to_owned();
@@ -149,19 +149,14 @@ async fn main() {
                         trace!("User {} is banned. Ignoring message.", user.name);
                         continue;
                     }
-                }
+
+                    user
+                };
 
                 {
-                    // get a writer from the bot
-                    // TODO: check if this can be done once per handler
-                    let writer = bot_client.writer();
-
-                    actions
-                        .handle_privmsg(msg.clone(), &mut writer.clone())
-                        .await;
-                    commands
-                        .handle_privmsg(msg.clone(), &mut writer.clone())
-                        .await;
+                    for handler in &handlers {
+                        handler.handle(msg.clone(), &user).await;
+                    }
                 }
             }
         });

@@ -1,13 +1,15 @@
+use crate::{
+    database::User,
+    message::{Message, MessageConsumer, Result},
+};
 use std::fmt;
-use std::sync::Arc;
-use twitchchat::messages::Privmsg;
 
 pub type CommandFunction =
-    Box<dyn Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static>;
+    Box<dyn Fn(Vec<String>, Message, &User) -> Result + Send + Sync + 'static>;
 
 // I want trait aliases PepeHands
 // pub type CommandFunctionImpl =
-//     impl Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static;
+//     impl Fn(Vec<String>, Message, &User) -> Result + Send + Sync + 'static;
 
 pub struct Command {
     name: &'static str,
@@ -23,6 +25,10 @@ impl Command {
         self.name
     }
 
+    pub fn whitelisted(&self) -> bool {
+        self.whitelisted
+    }
+
     pub fn aliases(&self) -> Vec<&str> {
         self.aliases.clone()
     }
@@ -31,21 +37,27 @@ impl Command {
     pub fn chainable(&self) -> bool {
         self.chainable
     }
-
-    pub fn whitelisted(&self) -> bool {
-        self.whitelisted
-    }
-
-    pub fn execute(&self, args: Vec<String>, msg: Arc<Privmsg<'_>>) -> CommandResult {
-        info!("Executing command {} with args {:?}", self.name, args);
-        (self.command)(args, msg)
-    }
 }
 
 /// Shadow constructor for `CommandBuilder`
 impl Command {
     pub fn with_name(name: &'static str) -> CommandBuilder {
         CommandBuilder::with_name(name)
+    }
+}
+
+impl MessageConsumer for Command {
+    fn name(&self) -> &str {
+        self.name()
+    }
+
+    fn whitelisted(&self) -> bool {
+        self.whitelisted()
+    }
+
+    fn consume(&self, args: Vec<String>, msg: Message, user: &User) -> Result {
+        info!("Executing command {} with args {:?}", self.name, args);
+        (self.command)(args, msg, &user)
     }
 }
 
@@ -60,7 +72,7 @@ impl fmt::Debug for Command {
     }
 }
 
-impl chb4::Documentation for Command {
+impl crate::Documentation for Command {
     fn name(&self) -> String {
         self.name.to_owned()
     }
@@ -166,7 +178,7 @@ impl CommandBuilder {
 
     pub fn command(
         mut self,
-        f: impl Fn(Vec<String>, Arc<Privmsg<'_>>) -> CommandResult + Send + Sync + 'static,
+        f: impl Fn(Vec<String>, Message, &User) -> Result + Send + Sync + 'static,
     ) -> Self {
         self.command = Some(Box::new(f));
         self
@@ -175,26 +187,4 @@ impl CommandBuilder {
     pub fn done(self) -> Command {
         Command { ..self.into() }
     }
-}
-
-#[derive(Debug)]
-pub enum CommandResult {
-    Message(String),
-    NoMessage,
-    Chainable(Vec<String>),
-    Error(String),
-}
-
-impl<T> From<T> for CommandResult
-where
-    T: std::error::Error,
-{
-    fn from(error: T) -> Self {
-        Self::Error(error.to_string())
-    }
-}
-
-pub enum Result<T> {
-    Ok(T),
-    Err(String),
 }

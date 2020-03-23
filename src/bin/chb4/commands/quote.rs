@@ -3,7 +3,6 @@ use super::prelude::*;
 use chb4::database::{Quote, User};
 use chb4::helpers::Permission;
 use regex::Regex;
-use std::convert::TryInto;
 
 lazy_static! {
     static ref RE: Regex = {
@@ -12,28 +11,11 @@ lazy_static! {
     };
 }
 
-pub fn command(context: Arc<Context>) -> Command {
+pub fn command(context: Arc<BotContext>) -> Command {
     Command::with_name("quote")
         .alias("quotes")
-        .command(move |args: Vec<String>, msg: Arc<Privmsg<'_>>| {
-            let user_id = msg.user_id().unwrap().try_into().unwrap();
-
-            let user = match User::by_twitch_id(&context.conn(), user_id) {
-                Ok(u) => u,
-                Err(e) => return e.into(),
-            };
-
-            let user = match user {
-                Some(u) => u,
-                None => {
-                    return CommandResult::Error(format!(
-                        "User with twitch id {} not found",
-                        user_id
-                    ))
-                }
-            };
-
-            match args.get(0).map(String::as_str) {
+        .command(
+            move |args, msg, user| match args.get(0).map(String::as_str) {
                 Some("add") => add(context.clone(), msg, user, args[1..].to_vec()),
                 Some("remove") | Some("delete") => {
                     remove(context.clone(), msg, user, args.get(1).map(String::as_str))
@@ -41,9 +23,9 @@ pub fn command(context: Arc<Context>) -> Command {
                 Some("edit") => edit(context.clone(), msg, user, args[1..].to_vec()),
                 Some("show") => show(context.clone(), args.get(1).map(String::as_str)),
                 Some(qid) => show(context.clone(), Some(qid)),
-                None => CommandResult::Message(String::from("Missing sub-command")),
-            }
-        })
+                None => Ok(MessageResult::Message(String::from("Missing sub-command"))),
+            },
+        )
         .description(
             "Show or add a quote.
 
@@ -69,60 +51,57 @@ NOTES:
         .done()
 }
 
-fn add(
-    context: Arc<Context>,
-    msg: Arc<Privmsg<'_>>,
-    user: User,
-    args: Vec<String>,
-) -> CommandResult {
-    let permission = Permission::from_user(msg.clone(), &user).unwrap();
+fn add(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) -> Result {
+    let permission = Permission::from_user(msg, &user).unwrap();
 
     // check if permission is at least friend
     if permission < Permission::Friend {
         debug!("Permission not high enough");
-        return CommandResult::NoMessage;
+        return Ok(MessageResult::None);
     }
 
     let msg = args.join(" ");
     let (message, author, authored) = match parse_quote(&msg) {
-        Result::Ok(t) => t,
-        Result::Err(e) => return CommandResult::Message(e),
+        Ok(t) => t,
+        Err(e) => return Err(e),
     };
 
     // insert quote
     let quote = match Quote::new(&context.conn(), user.id, author, authored, message) {
         Ok(q) => q,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
     info!("Added quote {} (id: {})", quote, quote.id);
-    CommandResult::Message(format!("Added new quote with id {}", quote.id))
+    Ok(MessageResult::Message(format!(
+        "Added new quote with id {}",
+        quote.id
+    )))
 }
 
-fn remove(
-    context: Arc<Context>,
-    msg: Arc<Privmsg<'_>>,
-    user: User,
-    qid: Option<&str>,
-) -> CommandResult {
+fn remove(context: Arc<BotContext>, msg: Message, user: &User, qid: Option<&str>) -> Result {
     // unwrap option
     let qid: &str = match qid {
         Some(qid) => qid,
-        None => return CommandResult::Message(String::from("Argument quote id missing")),
+        None => {
+            return Ok(MessageResult::Message(String::from(
+                "Argument quote id missing",
+            )))
+        }
     };
 
-    let permission = Permission::from_user(msg.clone(), &user).unwrap();
+    let permission = Permission::from_user(msg, &user).unwrap();
 
     // check if permission is at least friend
     if permission < Permission::Friend {
         debug!("Permission not high enough");
-        return CommandResult::NoMessage;
+        return Ok(MessageResult::None);
     }
 
     // parse str to i32
     let qid: i32 = match qid.parse() {
         Ok(id) => id,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
     let conn = &context.conn();
@@ -130,49 +109,54 @@ fn remove(
     // query quote
     let quote = match Quote::by_id(conn, qid) {
         Ok(q) => q,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
     let quote = match quote {
         Some(q) => q,
-        None => return CommandResult::Message(format!("Not quote with id {} found", qid)),
+        None => {
+            return Ok(MessageResult::Message(format!(
+                "Not quote with id {} found",
+                qid
+            )))
+        }
     };
 
     // check permissions
     if quote.creator_id != user.id && permission != Permission::Owner {
-        return CommandResult::Message(String::from("You do not have permissions for this quote"));
+        return Ok(MessageResult::Message(String::from(
+            "You do not have permissions for this quote",
+        )));
     }
 
     match quote.remove(conn) {
-        Ok(_) => CommandResult::Message(format!("Removed quote with id {}", qid)),
-        Err(e) => e.into(),
+        Ok(_) => Ok(MessageResult::Message(format!(
+            "Removed quote with id {}",
+            qid
+        ))),
+        Err(e) => Err(MessageError::from(e.to_string())),
     }
 }
 
-fn edit(
-    context: Arc<Context>,
-    msg: Arc<Privmsg<'_>>,
-    user: User,
-    args: Vec<String>,
-) -> CommandResult {
+fn edit(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) -> Result {
     // unwrap option
     let qid: &str = match args.get(0) {
         Some(q) => q,
-        None => return CommandResult::Message(String::from("Missing quote id")),
+        None => return Ok(MessageResult::Message(String::from("Missing quote id"))),
     };
 
-    let permission = Permission::from_user(msg.clone(), &user).unwrap();
+    let permission = Permission::from_user(msg, &user).unwrap();
 
     // check if permission is at least friend
     if permission < Permission::Friend {
         debug!("Permission not high enough");
-        return CommandResult::NoMessage;
+        return Ok(MessageResult::None);
     }
 
     // parse str to i32
     let qid: i32 = match qid.parse() {
         Ok(id) => id,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
     let conn = &context.conn();
@@ -180,63 +164,74 @@ fn edit(
     // query quote
     let quote = match Quote::by_id(conn, qid) {
         Ok(q) => q,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
     let quote = match quote {
         Some(q) => q,
-        None => return CommandResult::Message(format!("Not quote with id {} found", qid)),
+        None => {
+            return Ok(MessageResult::Message(format!(
+                "Not quote with id {} found",
+                qid
+            )))
+        }
     };
 
     // check permissions
     if quote.creator_id != user.id && permission != Permission::Owner {
-        return CommandResult::Message(String::from("You do not have permissions for this quote"));
+        return Ok(MessageResult::Message(String::from(
+            "You do not have permissions for this quote",
+        )));
     }
 
     let msg = args.join(" ");
     let (message, author, authored) = match parse_quote(&msg) {
-        Result::Ok(t) => t,
-        Result::Err(e) => return CommandResult::Message(e),
+        Ok(t) => t,
+        Err(e) => return Err(e),
     };
 
     let quote = match quote.update(conn, author, authored, message) {
         Ok(q) => q,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
-    CommandResult::Message(format!("Edited quote {}", quote.id))
+    Ok(MessageResult::Message(format!("Edited quote {}", quote.id)))
 }
 
-fn show(context: Arc<Context>, qid: Option<&str>) -> CommandResult {
+fn show(context: Arc<BotContext>, qid: Option<&str>) -> Result {
     // unwrap option
     let qid: &str = match qid {
         Some(qid) => qid,
-        None => return CommandResult::Message(String::from("Argument quote id missing")),
+        None => {
+            return Ok(MessageResult::Message(String::from(
+                "Argument quote id missing",
+            )))
+        }
     };
 
     // parse str to i32
     let qid: i32 = match qid.parse() {
         Ok(id) => id,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
     // query quote
     let quote = match Quote::by_id(&context.conn(), qid) {
         Ok(q) => q,
-        Err(e) => return e.into(),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
-    match quote {
-        Some(q) => CommandResult::Message(format!("{}", q)),
-        None => CommandResult::Message(format!("Not quote with id {} found", qid)),
-    }
+    Ok(MessageResult::Message(match quote {
+        Some(q) => format!("{}", q),
+        None => format!("Not quote with id {} found", qid),
+    }))
 }
 
-fn parse_quote(msg: &str) -> Result<(&str, &str, &str)> {
+fn parse_quote(msg: &str) -> std::result::Result<(&str, &str, &str), MessageError> {
     // parse quote
     let caps = match RE.captures(&msg) {
         Some(c) => c,
-        None => return Result::Err(String::from("I can't parse that quote")),
+        None => return Err("I can't parse that quote".into()),
     };
 
     let message = caps.get(1).unwrap().as_str();
@@ -244,16 +239,16 @@ fn parse_quote(msg: &str) -> Result<(&str, &str, &str)> {
     let authored = caps.get(4).unwrap().as_str();
 
     if message.len() > 500 {
-        return Result::Err(String::from("Quote is too long, max length is 500"));
+        return Err("Quote is too long, max length is 500".into());
     }
 
     if author.len() > 25 {
-        return Result::Err(String::from("Author is too long, max length is 25"));
+        return Err("Author is too long, max length is 25".into());
     }
 
     if authored.len() > 25 {
-        return Result::Err(String::from("Date is too long, max length is 25"));
+        return Err("Date is too long, max length is 25".into());
     }
 
-    Result::Ok((message, author, authored))
+    Ok((message, author, authored))
 }

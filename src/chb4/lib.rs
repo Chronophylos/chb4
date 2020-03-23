@@ -9,9 +9,13 @@ extern crate lazy_static;
 extern crate nom;
 extern crate r2d2;
 
+pub mod actions;
+pub mod commands;
 pub mod context;
 pub mod database;
+pub mod handler;
 pub mod helpers;
+pub mod message;
 pub mod models;
 pub mod schema;
 pub mod voicemail;

@@ -1,13 +1,15 @@
+use crate::{
+    database::User,
+    message::{Message, MessageConsumer, Result},
+};
 use regex::Regex;
 use std::fmt;
-use std::sync::Arc;
-use twitchchat::messages::Privmsg;
 
-pub type ActionFunction = Box<dyn Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static>;
+pub type ActionFunction = Box<dyn Fn(Message, &User) -> Result + Send + Sync + 'static>;
 
 // I want trait aliases PepeHands
 // pub type ActionFunctionImpl =
-//     impl Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static;
+//     impl Fn(Message, &User) -> Result + Send + Sync + 'static;
 
 pub struct Action {
     name: &'static str,
@@ -29,17 +31,27 @@ impl Action {
     pub fn whitelisted(&self) -> bool {
         self.whitelisted
     }
-
-    pub fn execute(&self, msg: Arc<Privmsg<'_>>) -> ActionResult {
-        info!("Executing action {}", self.name);
-        (self.command)(msg)
-    }
 }
 
 /// Shadow constructor for `ActionBuilder`
 impl Action {
     pub fn with_name(name: &'static str) -> ActionBuilder {
         ActionBuilder::with_name(name)
+    }
+}
+
+impl MessageConsumer for Action {
+    fn name(&self) -> &str {
+        self.name()
+    }
+
+    fn whitelisted(&self) -> bool {
+        self.whitelisted()
+    }
+
+    fn consume(&self, _args: Vec<String>, msg: Message, user: &User) -> Result {
+        info!("Executing action {}", self.name);
+        (self.command)(msg, &user)
     }
 }
 
@@ -53,7 +65,7 @@ impl fmt::Debug for Action {
     }
 }
 
-impl chb4::Documentation for Action {
+impl crate::Documentation for Action {
     fn name(&self) -> String {
         self.name().to_owned()
     }
@@ -138,10 +150,7 @@ impl ActionBuilder {
         self
     }
 
-    pub fn command(
-        mut self,
-        f: impl Fn(Arc<Privmsg<'_>>) -> ActionResult + Send + Sync + 'static,
-    ) -> Self {
+    pub fn command(mut self, f: impl Fn(Message, &User) -> Result + Send + Sync + 'static) -> Self {
         self.command = Some(Box::new(f));
         self
     }

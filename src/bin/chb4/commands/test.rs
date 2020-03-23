@@ -3,12 +3,12 @@ use super::prelude::*;
 pub fn command() -> Command {
     Command::with_name("test")
         .aliases(vec!["tset", "tets"])
-        .command(|args, _msg| {
-            if args.is_empty() {
-                CommandResult::Message(String::from("Test what?"))
+        .command(|args, _msg, _user| {
+            Ok(if args.is_empty() {
+                MessageResult::Message(String::from("Test what?"))
             } else {
-                CommandResult::Message(String::from("Testing ") + &args[0])
-            }
+                MessageResult::Message(String::from("Testing ") + &args[0])
+            })
         })
         .description(
             "A Command to test the bot.

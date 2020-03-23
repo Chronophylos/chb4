@@ -5,7 +5,7 @@ use std::f64::consts;
 pub fn command() -> Command {
     Command::with_name("math")
         .alias("quickmafs")
-        .command(move |args: Vec<String>, _msg: Arc<Privmsg<'_>>| {
+        .command(move |args, _msg, _user| {
             let context = context_map! {
                 "e" => consts::E,
                 "pi" => consts::PI,
@@ -32,10 +32,10 @@ pub fn command() -> Command {
             .unwrap();
 
             let expr = args.join(" ");
-            match eval_with_context(&expr, &context) {
-                Ok(s) => CommandResult::Message(format!("{}", s)),
-                Err(e) => CommandResult::Message(format!("Error: {}", e)),
-            }
+            Ok(match eval_with_context(&expr, &context) {
+                Ok(s) => MessageResult::Message(format!("{}", s)),
+                Err(e) => MessageResult::Message(format!("Error: {}", e)),
+            })
         })
         .description(
             "do math.

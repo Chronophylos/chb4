@@ -43,3 +43,4 @@ snafu               = "0.6"
 tokio               = { version = "0.2", default-features = false, features = ["macros"] }
 twitchchat          = "0.8"
 yansi               = "0.5"
+async-trait         = "0.1"

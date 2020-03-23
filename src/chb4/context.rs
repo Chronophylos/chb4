@@ -2,8 +2,10 @@ use crate::voicemail::Scheduler;
 use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use futures_executor::block_on;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use twitchchat::Client;
 
 pub type Connection = crate::database::Connection;
@@ -12,7 +14,7 @@ type Pool = diesel::r2d2::Pool<ConnectionManager<Connection>>;
 type Conn = PooledConnection<ConnectionManager<Connection>>;
 
 #[derive(Clone)]
-pub struct Context {
+pub struct BotContext {
     config: Config,
     pool: Pool,
     chat: Client,
@@ -20,7 +22,7 @@ pub struct Context {
     clock: Instant,
 }
 
-impl Context {
+impl BotContext {
     pub fn new(config: Config, pool: Pool) -> Arc<Self> {
         Arc::new(Self {
             config,

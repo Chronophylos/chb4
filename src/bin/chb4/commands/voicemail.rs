@@ -7,26 +7,26 @@ lazy_static! {
     static ref SEPERATORS: Vec<&'static str> = vec!["&&", "and", "und"];
 }
 
-pub fn command(context: Arc<Context>) -> Command {
+pub fn command(context: Arc<BotContext>) -> Command {
     Command::with_name("voicemail")
         .alias("tell")
-        .command(move |args, msg| {
-            let user_id = msg.user_id().unwrap();
+        .command(move |args, msg, _user| {
+            let user_id = msg.twitch_id().unwrap();
             let line = args.join(" ");
             let mut voicemail: Voicemail = match line.parse() {
                 Ok(v) => v,
-                Err(e) => return CommandResult::Message(format!("{:?}", e)),
+                Err(e) => return Ok(MessageResult::Message(format!("{:?}", e))),
             };
 
             let conn = &context.conn();
 
-            let channel_name = msg.channel.clone().into_owned();
+            let channel_name = msg.channel().to_owned();
             let channel = match database::Channel::by_name(conn, channel_name.trim_start_matches('#')) {
                 Ok(c) => match c {
                     Some(c) => c,
-                    None => return CommandResult::Error(format!("Channel not in database (name: {})", msg.channel)),
+                    None => return Err(MessageError::from(format!("Channel not in database (name: {})", msg.channel()))),
                 },
-                Err(e)=>return CommandResult::Error(e.to_string()),
+                Err(e)=>return Err(MessageError::from(e.to_string())),
             };
 
             let bot_name = context.bot_name();
@@ -41,10 +41,10 @@ pub fn command(context: Arc<Context>) -> Command {
             ) {
                 Ok(voicemails) => {
                     if voicemail.schedule.is_none() {
-                        CommandResult::Message(format!(
+                        Ok(MessageResult::Message(format!(
                             "I'll send that message to {} when they next type in chat.",
                             voicemail.recipients.join(", ")
-                        ))
+                        )))
                     } else {
                         // actually schedule voicemail
 
@@ -52,7 +52,7 @@ pub fn command(context: Arc<Context>) -> Command {
                             context.scheduler().schedule(voicemail);
                         }
 
-                        CommandResult::Message(format!(
+                        Ok(MessageResult::Message(format!(
                             "I'll send that message to {} in {}",
                             voicemail.recipients.join(", "),
             format_duration(
@@ -62,10 +62,10 @@ pub fn command(context: Arc<Context>) -> Command {
                     .to_std()
                     .unwrap_or_default()
             ),
-                        ))
+                        )))
                     }
                 }
-                Err(e) => CommandResult::Error(e.to_string()),
+                Err(e) => Err(MessageError::from(e.to_string())),
             }
         })
         .description(

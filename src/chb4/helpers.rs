@@ -1,10 +1,9 @@
-use crate::context::Context;
-use crate::database::{user, User};
-use snafu::{OptionExt, ResultExt, Snafu};
-use std::convert::TryInto;
-use std::sync::Arc;
+use crate::{
+    database::{user, User},
+    message::Message,
+};
+use snafu::Snafu;
 use std::time::Duration;
-use twitchchat::messages::Privmsg;
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -39,31 +38,23 @@ impl From<i16> for Permission {
 }
 
 impl Permission {
-    pub fn from(context: Arc<Context>, msg: Arc<Privmsg<'_>>) -> Result<Self> {
-        let uid = msg.user_id().context(GetIDFromMessage)?;
-        let id: i64 = uid.try_into().context(ConvertUserID)?;
-        let conn = context.conn();
-        let user = match User::by_twitch_id(&conn, id).context(GetUser)? {
-            Some(u) => u,
-            None => return Err(Error::UserNotFound),
-        };
-
-        Self::from_user(msg, &user)
-    }
-
-    pub fn from_user(msg: Arc<Privmsg<'_>>, user: &User) -> Result<Self> {
+    pub fn from_user(msg: Message, user: &User) -> Result<Self> {
         let permission: Permission = user.permission.into();
 
         if permission != Permission::Unknown {
             return Ok(permission);
         }
 
-        if msg.channel == msg.name {
-            return Ok(Permission::Broadcaster);
-        }
+        match msg {
+            Message::TwitchPrivmsg(msg) => {
+                if msg.channel == msg.name {
+                    return Ok(Permission::Broadcaster);
+                }
 
-        if msg.is_moderator() {
-            return Ok(Permission::Moderator);
+                if msg.is_moderator() {
+                    return Ok(Permission::Moderator);
+                }
+            }
         }
 
         Ok(Self::User)

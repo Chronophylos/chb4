@@ -37,15 +37,15 @@ pub fn command() -> Command {
         Ok(stats)
     }
 
-    fn font(name: &str) -> CommandResult {
-        CommandResult::Message(String::from("Not implemented"))
+    fn font(name: &str) -> MessageResult {
+        MessageResult::Message(String::from("Not implemented"))
     }
 
-    fn total() -> CommandResult {
+    fn total() -> MessageResult {
         let stats = async {
             stats(uri).await;
         };
-        CommandResult::Message(format!("Total views: {}", stats.totalViews))
+        MessageResult::Message(format!("Total views: {}", stats.totalViews))
     }
 
     Command::with_name("font")

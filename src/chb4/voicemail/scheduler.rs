@@ -1,4 +1,4 @@
-use crate::context::Context;
+use crate::context::BotContext;
 use crate::database::{Channel, User, Voicemail};
 use chrono::prelude::*;
 use futures_delay_queue::{delay_queue, DelayQueue, Receiver};
@@ -17,7 +17,7 @@ impl Scheduler {
         Self { queue, receiver }
     }
 
-    pub async fn run(&self, context: Arc<Context>) {
+    pub async fn run(&self, context: Arc<BotContext>) {
         debug!("starting scheduler loop");
         loop {
             if let Some(id) = self.receiver.receive().await {
@@ -37,7 +37,7 @@ impl Scheduler {
         );
     }
 
-    async fn show(&self, id: i32, context: Arc<Context>) {
+    async fn show(&self, id: i32, context: Arc<BotContext>) {
         trace!("showing voicemail (id: {})", id);
 
         let conn = &context.conn();

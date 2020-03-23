@@ -3,22 +3,22 @@ use chb4::database::Channel;
 
 use futures_executor::block_on;
 
-pub fn command(context: Arc<Context>) -> Command {
+pub fn command(context: Arc<BotContext>) -> Command {
     Command::with_name("admin")
-        .command(move |args: Vec<String>, msg: Arc<Privmsg<'_>>| {
-            let permission = Permission::from(context.clone(), msg).unwrap();
+        .command(move |args, msg, user| {
+            let permission = Permission::from_user(msg, user).unwrap();
 
             if permission != Permission::Owner {
                 debug!("Permission not high enough (is {:?})", permission);
-                return CommandResult::NoMessage;
+                return Ok(MessageResult::None);
             }
 
             match args.get(0).map(String::as_str) {
                 Some("stop") => stop(context.clone()),
                 Some("leave") => leave(context.clone(), args[1..].to_vec()),
                 Some("join") => join(context.clone(), args[1..].to_vec()),
-                Some(_) => CommandResult::Message(String::from("Unknown sub-command")),
-                None => CommandResult::Message(String::from("Missing sub-command")),
+                Some(_) => Ok(MessageResult::Message(String::from("Unknown sub-command"))),
+                None => Ok(MessageResult::Message(String::from("Missing sub-command"))),
             }
         })
         .description(
@@ -37,7 +37,7 @@ SUBCOMMANDS:
         .done()
 }
 
-fn stop(context: Arc<Context>) -> CommandResult {
+fn stop(context: Arc<BotContext>) -> Result {
     warn!("Stopping bot by command!");
 
     // stop the chat client
@@ -50,35 +50,35 @@ fn stop(context: Arc<Context>) -> CommandResult {
     std::process::exit(0);
 }
 
-fn leave(context: Arc<Context>, args: Vec<String>) -> CommandResult {
+fn leave(context: Arc<BotContext>, args: Vec<String>) -> Result {
     let name = match args.get(0) {
         Some(c) => c,
-        None => return CommandResult::Message(String::from("Missing channel")),
+        None => return Ok(MessageResult::Message(String::from("Missing channel"))),
     };
 
     let conn = &context.conn();
     let channel = match Channel::by_name(conn, name) {
         Ok(c) => c,
-        Err(e) => return CommandResult::Error(e.to_string()),
+        Err(e) => return Err(MessageError::from(e.to_string())),
     };
 
     let channel = match channel {
         Some(c) => c,
-        None => return CommandResult::Message(String::from("Channel not found")),
+        None => return Ok(MessageResult::Message(String::from("Channel not found"))),
     };
 
     context.join_channel_sync(name.to_owned());
 
     match channel.leave(conn) {
-        Err(e) => CommandResult::Error(format!("{:?}", e)),
-        Ok(_) => CommandResult::Message(format!("left channel {}", name)),
+        Err(e) => Err(MessageError::from(e.to_string())),
+        Ok(_) => Ok(MessageResult::Message(format!("left channel {}", name))),
     }
 }
 
-fn join(context: Arc<Context>, args: Vec<String>) -> CommandResult {
+fn join(context: Arc<BotContext>, args: Vec<String>) -> Result {
     let channel = match args.get(0) {
         Some(c) => c,
-        None => return CommandResult::Message(String::from("Missing channel")),
+        None => return Ok(MessageResult::Message(String::from("Missing channel"))),
     };
 
     let conn = &context.conn();
@@ -86,7 +86,7 @@ fn join(context: Arc<Context>, args: Vec<String>) -> CommandResult {
     context.join_channel_sync(channel.to_owned());
 
     match Channel::join(conn, &channel) {
-        Err(e) => CommandResult::Error(format!("{:?}", e)),
-        Ok(_) => CommandResult::Message(format!("Joined {}", channel)),
+        Err(e) => Err(MessageError::from(e.to_string())),
+        Ok(_) => Ok(MessageResult::Message(format!("Joined {}", channel))),
     }
 }
