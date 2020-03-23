@@ -1,7 +1,6 @@
 use super::{Channel, Connection, Voicemail};
 use crate::schema::*;
 use chrono::prelude::*;
-use diesel::debug_query;
 use diesel::prelude::*;
 use snafu::{ResultExt, Snafu};
 
