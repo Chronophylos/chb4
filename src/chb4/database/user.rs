@@ -1,6 +1,7 @@
 use super::{Channel, Connection, Voicemail};
 use crate::schema::*;
 use chrono::prelude::*;
+use diesel::debug_query;
 use diesel::prelude::*;
 use snafu::{ResultExt, Snafu};
 
@@ -198,7 +199,9 @@ impl User {
 
         let vms = Voicemail::belonging_to(self)
             .filter(
-                voicemails::active.eq(true), //.and(voicemails::scheduled.eq::<Option<NaiveDateTime>>(None)),
+                voicemails::active
+                    .eq(true)
+                    .and(voicemails::scheduled.is_null()),
             )
             .get_results(conn)
             .context(GetActiveVoicemails { id: self.id })?;
