@@ -72,10 +72,13 @@ async fn main() {
     let context = BotContext::new(config, pool);
     debug!("Created Bot Context");
 
-    let action_handler = ActionHandler::new(context.clone(), actions::all(context.clone()));
+    let action_index = actions::all(context.clone());
+    let command_index = commands::all(context.clone());
+
+    let action_handler = ActionHandler::new(context.clone(), action_index);
     debug!("Created Action Handler");
 
-    let command_handler = CommandHandler::new(context.clone(), commands::all(context.clone()));
+    let command_handler = CommandHandler::new(context.clone(), command_index);
     debug!("Created Command Handler");
 
     let handlers: Vec<Box<dyn Handler>> = vec![Box::new(action_handler), Box::new(command_handler)];
