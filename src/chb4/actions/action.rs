@@ -1,5 +1,6 @@
 use crate::{
     database::User,
+    documentation::Documentation,
     message::{Message, MessageConsumer, Result},
 };
 use regex::Regex;
@@ -65,7 +66,7 @@ impl fmt::Debug for Action {
     }
 }
 
-impl crate::Documentation for Action {
+impl Documentation for Action {
     fn name(&self) -> String {
         self.name().to_owned()
     }

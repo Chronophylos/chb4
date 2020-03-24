@@ -1,5 +1,6 @@
 use crate::{
     database::User,
+    documentation::Documentation,
     message::{Message, MessageConsumer, Result},
 };
 use std::fmt;
@@ -72,7 +73,7 @@ impl fmt::Debug for Command {
     }
 }
 
-impl crate::Documentation for Command {
+impl Documentation for Command {
     fn name(&self) -> String {
         self.name.to_owned()
     }

@@ -15,6 +15,7 @@ pub mod context;
 pub mod database;
 pub mod handler;
 pub mod helpers;
+pub mod manpage;
 pub mod message;
 pub mod models;
 pub mod schema;
@@ -24,6 +25,5 @@ mod documentation;
 mod log_format;
 mod stopwatch;
 
-pub use documentation::Documentation;
 pub use log_format::format;
 pub use stopwatch::Stopwatch;

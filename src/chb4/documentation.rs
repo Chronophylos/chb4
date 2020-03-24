@@ -1,3 +1,4 @@
+#[deprecated(note = "use Manpage instead")]
 pub trait Documentation {
     fn name(&self) -> String;
     fn description(&self) -> String;
