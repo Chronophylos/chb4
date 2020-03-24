@@ -24,7 +24,7 @@ chrono            = "0.4"
 evalexpr          = "5"
 flexi_logger      = "0.15"
 config            = { version = "0.10", default-features = false, features = ["toml"] }
-diesel            = { version = "1.0", default-features = false, features = ["postgres", "chrono", "r2d2"] }
+diesel            = { version = "1.4", default-features = false, features = ["postgres", "chrono", "r2d2"] }
 diesel_migrations = "1.4"
 futures-executor  = "0.3"
 futures-util      = "0.3"
