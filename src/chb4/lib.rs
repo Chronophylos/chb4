@@ -5,7 +5,6 @@ extern crate log;
 extern crate futures_delay_queue;
 extern crate futures_executor;
 extern crate humantime;
-extern crate lazy_static;
 extern crate nom;
 extern crate r2d2;
 
@@ -15,7 +14,7 @@ pub mod context;
 pub mod database;
 pub mod handler;
 pub mod helpers;
-pub mod manpage;
+pub mod manpages;
 pub mod message;
 pub mod models;
 pub mod schema;

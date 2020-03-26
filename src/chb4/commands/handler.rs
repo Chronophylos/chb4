@@ -11,7 +11,7 @@ use std::{collections::HashMap, sync::Arc};
 use twitchchat::messages::Privmsg;
 
 pub struct CommandHandler {
-    commands: HashMap<String, Command>,
+    commands: HashMap<String, Arc<Command>>,
     // translate aliases to command names
     aliases: HashMap<String, String>,
 
@@ -24,9 +24,9 @@ pub struct CommandHandler {
 
 impl CommandHandler {
     /// Create a new CommandHandler
-    pub fn new(context: Arc<BotContext>, commands: Vec<Command>) -> Self {
+    pub fn new(context: Arc<BotContext>, commands: Vec<Arc<Command>>) -> Self {
         let mut aliases: HashMap<String, String> = HashMap::new();
-        let mut command_map: HashMap<String, Command> = HashMap::new();
+        let mut command_map: HashMap<String, Arc<Command>> = HashMap::new();
 
         for command in commands {
             for alias in command.aliases() {
@@ -44,11 +44,11 @@ impl CommandHandler {
     }
 }
 
-impl Handler for CommandHandler {
+impl Handler<Command> for CommandHandler {
     /// Get a command by `name`. This can either be the command name or any of it's aliases.
-    fn get(&self, name: String) -> Option<&dyn MessageConsumer> {
+    fn get(&self, name: String) -> Option<Arc<Command>> {
         let name = self.aliases.get(&name).unwrap_or_else(|| &name);
-        self.commands.get(name).map(|c| c as &dyn MessageConsumer)
+        self.commands.get(name).cloned()
     }
 }
 
@@ -70,7 +70,7 @@ impl Twitch for CommandHandler {
 
         match self.get(command_name) {
             Some(cmd) => {
-                debug!("Found matching command {}", cmd.name());
+                debug!("Found matching command {}", Command::name(&cmd));
                 if !cmd.whitelisted() {
                     // or the command is enabled in this channel
 

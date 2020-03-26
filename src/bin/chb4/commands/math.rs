@@ -2,7 +2,7 @@ use super::prelude::*;
 use evalexpr::*;
 use std::f64::consts;
 
-pub fn command() -> Command {
+pub fn command() -> Arc<Command> {
     Command::with_name("math")
         .alias("quickmafs")
         .command(move |args, _msg, _user| {

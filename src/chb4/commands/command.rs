@@ -1,9 +1,11 @@
 use crate::{
     database::User,
     documentation::Documentation,
+    helpers::prettify_bool,
+    manpages::{Chapter, Manpage},
     message::{Message, MessageConsumer, Result},
 };
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 pub type CommandFunction =
     Box<dyn Fn(Vec<String>, Message, &User) -> Result + Send + Sync + 'static>;
@@ -17,19 +19,13 @@ pub struct Command {
     aliases: Vec<&'static str>,
     chainable: bool,
     whitelisted: bool,
+    about: &'static str,
     description: &'static str,
+    example: Option<&'static str>,
     command: CommandFunction,
 }
 
 impl Command {
-    pub fn name(&self) -> &str {
-        self.name
-    }
-
-    pub fn whitelisted(&self) -> bool {
-        self.whitelisted
-    }
-
     pub fn aliases(&self) -> Vec<&str> {
         self.aliases.clone()
     }
@@ -49,11 +45,11 @@ impl Command {
 
 impl MessageConsumer for Command {
     fn name(&self) -> &str {
-        self.name()
+        self.name
     }
 
     fn whitelisted(&self) -> bool {
-        self.whitelisted()
+        self.whitelisted
     }
 
     fn consume(&self, args: Vec<String>, msg: Message, user: &User) -> Result {
@@ -69,6 +65,9 @@ impl fmt::Debug for Command {
             .field("aliases", &self.aliases)
             .field("chainable", &self.chainable)
             .field("whitelisted", &self.whitelisted)
+            .field("about", &self.about)
+            .field("description", &self.description)
+            .field("example", &self.example)
             .finish()
     }
 }
@@ -99,13 +98,46 @@ impl Documentation for Command {
     }
 }
 
+impl Manpage for Command {
+    fn names(&self) -> Vec<&str> {
+        let mut aliases = self.aliases.clone();
+        aliases.insert(0, self.name);
+        aliases
+    }
+
+    fn chapter(&self) -> Chapter {
+        Chapter::Command
+    }
+
+    fn name(&self) -> &str {
+        self.about
+    }
+
+    fn description(&self) -> &str {
+        self.description
+    }
+
+    fn example(&self) -> Option<&str> {
+        self.example
+    }
+
+    fn characteristics(&self) -> Vec<(&str, &str)> {
+        vec![
+            ("chainable", prettify_bool(self.chainable)),
+            ("whitelisted", prettify_bool(self.whitelisted)),
+        ]
+    }
+}
+
 #[derive(Default)]
 pub struct CommandBuilder {
     name: Option<&'static str>,
     aliases: Option<Vec<&'static str>>,
     chainable: Option<bool>,
     whitelisted: Option<bool>,
+    about: Option<&'static str>,
     description: Option<&'static str>,
+    example: Option<&'static str>,
     command: Option<CommandFunction>,
 }
 
@@ -118,7 +150,9 @@ impl Into<Command> for CommandBuilder {
             aliases: self.aliases.unwrap_or_default(),
             chainable: self.chainable.unwrap_or(false),
             whitelisted: self.whitelisted.unwrap_or(false),
+            about: self.about.unwrap_or("about missing"),
             description: self.description.unwrap_or("description missing"),
+            example: self.example,
             command: self.command.unwrap(),
         }
     }
@@ -172,8 +206,18 @@ impl CommandBuilder {
         self
     }
 
+    pub fn about(mut self, text: &'static str) -> Self {
+        self.about = Some(text);
+        self
+    }
+
     pub fn description(mut self, text: &'static str) -> Self {
         self.description = Some(text);
+        self
+    }
+
+    pub fn example(mut self, text: &'static str) -> Self {
+        self.example = Some(text);
         self
     }
 
@@ -185,7 +229,7 @@ impl CommandBuilder {
         self
     }
 
-    pub fn done(self) -> Command {
-        Command { ..self.into() }
+    pub fn done(self) -> Arc<Command> {
+        Arc::new(Command { ..self.into() })
     }
 }

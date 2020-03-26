@@ -7,7 +7,7 @@ lazy_static! {
     static ref SEPERATORS: Vec<&'static str> = vec!["&&", "and", "und"];
 }
 
-pub fn command(context: Arc<BotContext>) -> Command {
+pub fn command(context: Arc<BotContext>) -> Arc<Command> {
     Command::with_name("voicemail")
         .alias("tell")
         .command(move |args, msg, _user| {

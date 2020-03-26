@@ -10,24 +10,21 @@ use std::sync::Arc;
 use twitchchat::messages::Privmsg;
 
 pub struct ActionHandler {
-    actions: Vec<Action>,
+    actions: Vec<Arc<Action>>,
 
     context: Arc<BotContext>,
 }
 
 impl ActionHandler {
     /// Create a new ActionHandler
-    pub fn new(context: Arc<BotContext>, actions: Vec<Action>) -> Self {
+    pub fn new(context: Arc<BotContext>, actions: Vec<Arc<Action>>) -> Self {
         Self { context, actions }
     }
 }
 
-impl Handler for ActionHandler {
-    fn get(&self, name: String) -> Option<&dyn MessageConsumer> {
-        self.actions
-            .iter()
-            .find(|&a| a.name() == name)
-            .map(|a: &Action| a as &dyn MessageConsumer)
+impl Handler<Action> for ActionHandler {
+    fn get(&self, name: String) -> Option<Arc<Action>> {
+        self.actions.iter().find(|&a| a.name() == name).cloned()
     }
 }
 

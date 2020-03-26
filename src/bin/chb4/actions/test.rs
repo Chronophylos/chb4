@@ -1,7 +1,7 @@
 use super::prelude::*;
 use rand::prelude::*;
 
-pub fn action() -> Action {
+pub fn action() -> Arc<Action> {
     Action::with_name("test")
         .regex(r"^test")
         .command(|_msg, _user| {

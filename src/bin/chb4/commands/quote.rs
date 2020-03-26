@@ -11,7 +11,7 @@ lazy_static! {
     };
 }
 
-pub fn command(context: Arc<BotContext>) -> Command {
+pub fn command(context: Arc<BotContext>) -> Arc<Command> {
     Command::with_name("quote")
         .alias("quotes")
         .command(

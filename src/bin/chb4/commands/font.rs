@@ -14,7 +14,7 @@ struct FontStats {
     pub totalViews: u64,
 }
 
-pub fn command() -> Command {
+pub fn command() -> Arc<Command> {
     let uri = Uri::from_static("https://fonts.google.com/analytics");
 
     // todo cache

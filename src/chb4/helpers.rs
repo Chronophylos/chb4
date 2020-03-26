@@ -64,3 +64,11 @@ impl Permission {
 pub fn truncate_duration(dur: Duration) -> Duration {
     Duration::from_secs(dur.as_secs())
 }
+
+pub fn prettify_bool(b: bool) -> &'static str {
+    if b {
+        "yes"
+    } else {
+        "no"
+    }
+}

@@ -20,13 +20,13 @@ use chb4::{
     commands::CommandHandler,
     context::BotContext,
     database::{Channel, User, Voicemail},
-    handler::Handler,
-    Stopwatch,
+    handler::Twitch,
+    manpages, Stopwatch,
 };
 use chrono::prelude::*;
 use config::{Config, Environment, File, FileFormat};
 use diesel::{r2d2, PgConnection};
-use std::{convert::TryInto, env};
+use std::{convert::TryInto, env, sync::Arc};
 use tokio::stream::StreamExt as _;
 use twitchchat::{client::Status, events, Secure}; // so .next() can be used on the EventStream
 
@@ -75,13 +75,21 @@ async fn main() {
     let action_index = actions::all(context.clone());
     let command_index = commands::all(context.clone());
 
+    let mut manpage_index = manpages::Index::new();
+    manpage_index.populate(action_index.clone());
+    manpage_index.populate(command_index.clone());
+    debug!("Created and populated Manpages");
+
     let action_handler = ActionHandler::new(context.clone(), action_index);
     debug!("Created Action Handler");
 
     let command_handler = CommandHandler::new(context.clone(), command_index);
     debug!("Created Command Handler");
 
-    let handlers: Vec<Box<dyn Handler>> = vec![Box::new(action_handler), Box::new(command_handler)];
+    let twitch_handlers: Vec<Arc<dyn Twitch>> = vec![
+        Arc::new(action_handler) as Arc<dyn Twitch>,
+        Arc::new(command_handler) as Arc<dyn Twitch>,
+    ];
 
     let client = context.chat();
 
@@ -156,10 +164,8 @@ async fn main() {
                     user
                 };
 
-                {
-                    for handler in &handlers {
-                        handler.handle(msg.clone(), &user).await;
-                    }
+                for handler in &twitch_handlers {
+                    handler.handle(msg.clone(), &user).await;
                 }
             }
         });

@@ -3,7 +3,7 @@ use chrono::prelude::*;
 use humantime::format_duration;
 use std::time::Duration;
 
-pub fn command(context: Arc<BotContext>) -> Command {
+pub fn command(context: Arc<BotContext>) -> Arc<Command> {
     Command::with_name("ping")
         .chainable()
         .command(move |_args, msg, _user| {

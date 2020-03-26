@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-pub fn command() -> Command {
+pub fn command() -> Arc<Command> {
     Command::with_name("color")
         .chainable()
         .command(|_args, msg, _user| {

@@ -3,11 +3,14 @@ use async_trait::async_trait;
 use std::sync::Arc;
 use twitchchat::messages::Privmsg;
 
-pub trait Handler: Twitch + Send + Sync {
-    fn get(&self, name: String) -> Option<&dyn MessageConsumer>;
+pub trait Handler<T>: Twitch + Send + Sync
+where
+    T: MessageConsumer,
+{
+    fn get(&self, name: String) -> Option<Arc<T>>;
 }
 
 #[async_trait]
-pub trait Twitch {
+pub trait Twitch: Send + Sync {
     async fn handle(&self, msg: Arc<Privmsg<'_>>, user: &User);
 }

@@ -12,7 +12,7 @@ mod quote;
 mod test;
 mod voicemail;
 
-pub fn all(context: Arc<BotContext>) -> Vec<Command> {
+pub fn all(context: Arc<BotContext>) -> Vec<Arc<Command>> {
     vec![
         admin::command(context.clone()),
         color::command(),

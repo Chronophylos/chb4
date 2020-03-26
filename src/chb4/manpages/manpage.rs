@@ -1,22 +1,28 @@
+use super::Chapter;
 use snafu::{OptionExt, ResultExt, Snafu};
 use std::{fs::File, io::prelude::*, path::Path};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
+    #[snafu(display("Getting name from names()"))]
     GetName,
+
+    #[snafu(display("Creating file: {}", source))]
     CreateFile { source: std::io::Error },
+
+    #[snafu(display("Writing file: {}", source))]
     WriteFile { source: std::io::Error },
 }
 
 type Result<T> = std::result::Result<T, Error>;
 
 pub trait Manpage {
-    fn names(&self) -> &Vec<String>;
-    fn chapter(&self) -> u8;
+    fn names(&self) -> Vec<&str>;
+    fn chapter(&self) -> Chapter;
     fn name(&self) -> &str;
     fn description(&self) -> &str;
     fn example(&self) -> Option<&str>;
-    fn characteristics(&self) -> &Vec<(String, String)>;
+    fn characteristics(&self) -> Vec<(&str, &str)>;
 }
 
 impl dyn Manpage {
@@ -86,7 +92,10 @@ impl dyn Manpage {
         Ok(chunks.join("\n\n"))
     }
 
-    pub fn render_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+    pub fn render_file<P>(&self, path: P) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
         let mut f = File::create(path).context(CreateFile)?;
 
         f.write_all(self.render()?.as_bytes()).context(WriteFile)

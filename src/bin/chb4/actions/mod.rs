@@ -6,6 +6,6 @@ mod prelude;
 mod test;
 mod voicemail;
 
-pub fn all(context: Arc<BotContext>) -> Vec<Action> {
+pub fn all(context: Arc<BotContext>) -> Vec<Arc<Action>> {
     vec![test::action(), voicemail::action(context)]
 }

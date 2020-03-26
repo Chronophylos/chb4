@@ -19,6 +19,7 @@ doc = false
 test = false
 
 [dependencies]
+async-trait         = "0.1"
 bytes               = { version = "0.5", features = ["serde"] }
 chrono              = "0.4"
 config              = { version = "0.10", default-features = false, features = ["toml"] }
@@ -43,4 +44,3 @@ snafu               = "0.6"
 tokio               = { version = "0.2", default-features = false, features = ["macros"] }
 twitchchat          = "0.8"
 yansi               = "0.5"
-async-trait         = "0.1"

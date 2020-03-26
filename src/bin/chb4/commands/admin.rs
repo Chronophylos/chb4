@@ -3,7 +3,7 @@ use chb4::database::Channel;
 
 use futures_executor::block_on;
 
-pub fn command(context: Arc<BotContext>) -> Command {
+pub fn command(context: Arc<BotContext>) -> Arc<Command> {
     Command::with_name("admin")
         .command(move |args, msg, user| {
             let permission = Permission::from_user(msg, user).unwrap();

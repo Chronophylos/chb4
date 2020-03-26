@@ -1,10 +1,12 @@
 use crate::{
     database::User,
     documentation::Documentation,
+    helpers::prettify_bool,
+    manpages::{Chapter, Manpage},
     message::{Message, MessageConsumer, Result},
 };
 use regex::Regex;
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 pub type ActionFunction = Box<dyn Fn(Message, &User) -> Result + Send + Sync + 'static>;
 
@@ -16,7 +18,9 @@ pub struct Action {
     name: &'static str,
     regex: Regex,
     whitelisted: bool,
+    about: &'static str,
     description: &'static str,
+    example: Option<&'static str>,
     command: ActionFunction,
 }
 
@@ -43,11 +47,11 @@ impl Action {
 
 impl MessageConsumer for Action {
     fn name(&self) -> &str {
-        self.name()
+        self.name
     }
 
     fn whitelisted(&self) -> bool {
-        self.whitelisted()
+        self.whitelisted
     }
 
     fn consume(&self, _args: Vec<String>, msg: Message, user: &User) -> Result {
@@ -61,6 +65,9 @@ impl fmt::Debug for Action {
         f.debug_struct("Action")
             .field("name", &self.name)
             .field("regex", &self.regex)
+            .field("about", &self.name)
+            .field("description", &self.description)
+            .field("example", &self.example)
             .field("whitelisted", &self.whitelisted)
             .finish()
     }
@@ -92,12 +99,43 @@ impl Documentation for Action {
     }
 }
 
+impl Manpage for Action {
+    fn names(&self) -> Vec<&str> {
+        vec![self.name]
+    }
+
+    fn chapter(&self) -> Chapter {
+        Chapter::Action
+    }
+
+    fn name(&self) -> &str {
+        self.about
+    }
+
+    fn description(&self) -> &str {
+        self.description
+    }
+
+    fn example(&self) -> Option<&str> {
+        self.example
+    }
+
+    fn characteristics(&self) -> Vec<(&str, &str)> {
+        vec![
+            ("chainable", "no"),
+            ("whitelisted", prettify_bool(self.whitelisted)),
+        ]
+    }
+}
+
 #[derive(Default)]
 pub struct ActionBuilder {
     name: Option<&'static str>,
     regex: Option<Regex>,
     whitelisted: Option<bool>,
+    about: Option<&'static str>,
     description: Option<&'static str>,
+    example: Option<&'static str>,
     command: Option<ActionFunction>,
 }
 
@@ -112,7 +150,9 @@ impl Into<Action> for ActionBuilder {
                 Regex::new("").unwrap()
             }),
             whitelisted: self.whitelisted.unwrap_or(false),
+            about: self.about.unwrap_or("about missing"),
             description: self.description.unwrap_or("description missing"),
+            example: self.example,
             command: self.command.unwrap(),
         }
     }
@@ -139,15 +179,23 @@ impl ActionBuilder {
         self
     }
 
-    #[allow(dead_code)]
     pub fn whitelisted(mut self) -> Self {
         self.whitelisted = Some(true);
         self
     }
 
-    #[allow(dead_code)]
+    pub fn about(mut self, text: &'static str) -> Self {
+        self.about = Some(text);
+        self
+    }
+
     pub fn description(mut self, text: &'static str) -> Self {
         self.description = Some(text);
+        self
+    }
+
+    pub fn example(mut self, text: &'static str) -> Self {
+        self.example = Some(text);
         self
     }
 
@@ -156,8 +204,8 @@ impl ActionBuilder {
         self
     }
 
-    pub fn done(self) -> Action {
-        Action { ..self.into() }
+    pub fn done(self) -> Arc<Action> {
+        Arc::new(Action { ..self.into() })
     }
 }
 
