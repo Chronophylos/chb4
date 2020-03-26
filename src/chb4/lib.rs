@@ -20,7 +20,6 @@ pub mod models;
 pub mod schema;
 pub mod voicemail;
 
-mod documentation;
 mod log_format;
 mod stopwatch;
 

@@ -27,8 +27,8 @@ use chrono::prelude::*;
 use config::{Config, Environment, File, FileFormat};
 use diesel::{r2d2, PgConnection};
 use std::{convert::TryInto, env, sync::Arc};
-use tokio::stream::StreamExt as _;
-use twitchchat::{client::Status, events, Secure}; // so .next() can be used on the EventStream
+use tokio::stream::StreamExt;
+use twitchchat::{client::Status, events, Secure};
 
 /// The main is currently full of bloat. The plan is to move everything into their own module
 #[tokio::main]
