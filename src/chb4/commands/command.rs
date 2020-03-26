@@ -1,6 +1,5 @@
 use crate::{
     database::User,
-    documentation::Documentation,
     helpers::prettify_bool,
     manpages::{Chapter, Manpage},
     message::{Message, MessageConsumer, Result},
@@ -69,32 +68,6 @@ impl fmt::Debug for Command {
             .field("description", &self.description)
             .field("example", &self.example)
             .finish()
-    }
-}
-
-impl Documentation for Command {
-    fn name(&self) -> String {
-        self.name.to_owned()
-    }
-
-    fn description(&self) -> String {
-        self.description.to_owned()
-    }
-
-    fn aliases(&self) -> Option<String> {
-        Some(self.aliases.join(", "))
-    }
-
-    fn regex(&self) -> Option<String> {
-        None
-    }
-
-    fn chainable(&self) -> String {
-        String::from(if self.chainable { "yes" } else { "no" })
-    }
-
-    fn whitelisted(&self) -> String {
-        String::from(if self.whitelisted { "yes" } else { "no" })
     }
 }
 

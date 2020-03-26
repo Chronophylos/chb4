@@ -1,6 +1,5 @@
 use crate::{
     database::User,
-    documentation::Documentation,
     helpers::prettify_bool,
     manpages::{Chapter, Manpage},
     message::{Message, MessageConsumer, Result},
@@ -70,32 +69,6 @@ impl fmt::Debug for Action {
             .field("example", &self.example)
             .field("whitelisted", &self.whitelisted)
             .finish()
-    }
-}
-
-impl Documentation for Action {
-    fn name(&self) -> String {
-        self.name().to_owned()
-    }
-
-    fn description(&self) -> String {
-        self.description.to_owned()
-    }
-
-    fn aliases(&self) -> Option<String> {
-        None
-    }
-
-    fn regex(&self) -> Option<String> {
-        Some(format!("{}", self.regex))
-    }
-
-    fn chainable(&self) -> String {
-        String::from("no")
-    }
-
-    fn whitelisted(&self) -> String {
-        String::from(if self.whitelisted { "yes" } else { "no" })
     }
 }
 
