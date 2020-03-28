@@ -1,12 +1,10 @@
-use crate::voicemail::Scheduler;
+use crate::{voicemail::Scheduler, TwitchBot};
 use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
-use futures_executor::block_on;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use twitchchat::Client;
 
 pub type Connection = crate::database::Connection;
 
@@ -16,20 +14,27 @@ type Conn = PooledConnection<ConnectionManager<Connection>>;
 #[derive(Clone)]
 pub struct BotContext {
     config: Config,
+    // connection pool for database
     pool: Pool,
-    chat: Client,
+    // bot for twitch
+    twitchbot: Arc<TwitchBot>,
+
+    // voicemail scheduler
     scheduler: Scheduler,
+
     clock: Instant,
+    pub version: &'static str,
 }
 
 impl BotContext {
-    pub fn new(config: Config, pool: Pool) -> Arc<Self> {
+    pub fn new(config: Config, pool: Pool, twitchbot: Arc<TwitchBot>) -> Arc<Self> {
         Arc::new(Self {
             config,
             pool,
-            chat: Client::new(),
+            twitchbot,
             scheduler: Scheduler::new(),
             clock: Instant::now(),
+            version: env!("CARGO_PKG_VERSION"),
         })
     }
 
@@ -49,8 +54,8 @@ impl BotContext {
         self.config.get_str("twitch.nick").unwrap()
     }
 
-    pub fn chat(&self) -> &Client {
-        &self.chat
+    pub fn twitchbot(&self) -> Arc<TwitchBot> {
+        self.twitchbot.clone()
     }
 
     pub fn scheduler(&self) -> &Scheduler {
@@ -60,46 +65,5 @@ impl BotContext {
     /// Get the duration how long ago this context was created
     pub fn elapsed(&self) -> Duration {
         self.clock.elapsed()
-    }
-
-    /// Join channel blocking.
-    pub fn join_channel_sync(&self, channel: String) {
-        block_on(self.join_channel(channel));
-    }
-
-    /// Join channel non-blocking.
-    pub async fn join_channel(&self, channel: String) {
-        info!("Joining channel {}", channel);
-
-        if let Err(err) = self.chat.writer().join(&channel).await {
-            match err {
-                twitchchat::client::Error::InvalidChannel(..) => {
-                    error!("could not join channel because the name is empty");
-                }
-                _ => {
-                    error!("got an error, but I don't know what to do: {}", err);
-                }
-            }
-        }
-    }
-
-    /// Leave channel blocking.
-    pub fn leave_channel_sync(&self, channel: String) {
-        info!("Leaving channel {}", channel);
-
-        let leave = async {
-            if let Err(err) = self.chat.writer().part(&channel).await {
-                match err {
-                    twitchchat::client::Error::InvalidChannel(..) => {
-                        error!("could not leave channel because the name is empty");
-                    }
-                    _ => {
-                        error!("got an error, but I don't know what to do: {}", err);
-                    }
-                }
-            }
-        };
-
-        block_on(leave);
     }
 }

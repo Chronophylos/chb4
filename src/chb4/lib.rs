@@ -22,6 +22,8 @@ pub mod voicemail;
 
 mod log_format;
 mod stopwatch;
+mod twitchbot;
 
 pub use log_format::format;
 pub use stopwatch::Stopwatch;
+pub use twitchbot::TwitchBot;

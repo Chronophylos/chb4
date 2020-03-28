@@ -43,7 +43,7 @@ fn stop(context: Arc<BotContext>) -> Result {
     // stop the chat client
     block_on(async {
         info!("Stopping chat client");
-        context.chat().stop().await.unwrap()
+        context.twitchbot().stop()
     });
 
     info!("Stopping process");
@@ -67,7 +67,9 @@ fn leave(context: Arc<BotContext>, args: Vec<String>) -> Result {
         None => return Ok(MessageResult::Message(String::from("Channel not found"))),
     };
 
-    context.join_channel_sync(name.to_owned());
+    if let Err(e) = context.twitchbot().part_sync(name) {
+        return Err(MessageError::from(e.to_string()));
+    }
 
     match channel.leave(conn) {
         Err(e) => Err(MessageError::from(e.to_string())),
@@ -83,7 +85,9 @@ fn join(context: Arc<BotContext>, args: Vec<String>) -> Result {
 
     let conn = &context.conn();
 
-    context.join_channel_sync(channel.to_owned());
+    if let Err(e) = context.twitchbot().join_sync(channel) {
+        return Err(MessageError::from(e.to_string()));
+    }
 
     match Channel::join(conn, &channel) {
         Err(e) => Err(MessageError::from(e.to_string())),

@@ -58,10 +58,10 @@ impl Scheduler {
         let receiver = User::by_id(conn, v.receiver_id).unwrap().unwrap();
 
         context
-            .chat()
+            .twitchbot()
             .writer()
             .privmsg(
-                channel_name,
+                &channel_name,
                 &format!(
                     "{}, one message for you: {}",
                     receiver.display_name_or_name(),
