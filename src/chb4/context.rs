@@ -1,4 +1,4 @@
-use crate::{voicemail::Scheduler, TwitchBot};
+use crate::{manpages, voicemail::Scheduler, TwitchBot};
 use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use std::{
@@ -11,16 +11,20 @@ pub type Connection = crate::database::Connection;
 type Pool = diesel::r2d2::Pool<ConnectionManager<Connection>>;
 type Conn = PooledConnection<ConnectionManager<Connection>>;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct BotContext {
     config: Config,
     // connection pool for database
     pool: Pool,
+
     // bot for twitch
     twitchbot: Arc<TwitchBot>,
 
     // voicemail scheduler
     scheduler: Scheduler,
+
+    // manpage index
+    manpage_index: Arc<manpages::Index<'static>>,
 
     clock: Instant,
     pub version: &'static str,
@@ -32,9 +36,9 @@ impl BotContext {
             config,
             pool,
             twitchbot,
-            scheduler: Scheduler::new(),
             clock: Instant::now(),
             version: env!("CARGO_PKG_VERSION"),
+            ..Self::default()
         })
     }
 

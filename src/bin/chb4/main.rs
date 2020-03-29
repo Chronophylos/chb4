@@ -83,6 +83,8 @@ async fn main() {
     manpage_index.populate(command_index.clone());
     debug!("Created and populated Manpages");
 
+    context.set_manpage_index(manpage_index);
+
     let action_handler = ActionHandler::new(context.clone(), action_index);
     debug!("Created Action Handler");
 

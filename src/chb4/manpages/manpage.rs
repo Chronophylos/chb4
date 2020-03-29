@@ -16,7 +16,7 @@ pub enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-pub trait Manpage {
+pub trait ManpageTrait {
     fn names(&self) -> Vec<&str>;
     fn chapter(&self) -> Chapter;
     fn name(&self) -> &str;
@@ -25,18 +25,41 @@ pub trait Manpage {
     fn characteristics(&self) -> Vec<(&str, &str)>;
 }
 
-impl dyn Manpage {
+pub struct Manpage<'a> {
+    names: Vec<&'a str>,
+    chapter: Chapter,
+    name: &'a str,
+    description: &'a str,
+    example: Option<&'a str>,
+    characteristics: Vec<(&'a str, &'a str)>,
+}
+
+impl Manpage<'_> {
+    pub fn new<T>(manpage: T) -> Self
+    where
+        T: ManpageTrait,
+    {
+        Self {
+            names: manpage.names(),
+            chapter: manpage.chapter(),
+            name: manpage.name(),
+            description: manpage.description(),
+            example: manpage.example(),
+            characteristics: manpage.characteristics(),
+        }
+    }
+
     fn render_title(&self) -> Result<String> {
-        Ok(format!("= {}", self.names().get(0).context(GetName)?))
+        Ok(format!("= {}", self.names.get(0).context(GetName)?))
     }
 
     fn render_aliases(&self) -> String {
-        if self.names().len() < 2 {
+        if self.names.len() < 2 {
             String::from("")
         } else {
             format!(
                 "Aliases: {:?}",
-                self.names().iter().skip(1).collect::<Vec<_>>()
+                self.names.iter().skip(1).collect::<Vec<_>>()
             )
         }
     }
@@ -46,17 +69,17 @@ impl dyn Manpage {
             "== NAME
 
 {}",
-            self.name()
+            self.name
         )
     }
 
     fn render_characteristics(&self) -> String {
-        if self.characteristics().is_empty() {
+        if self.characteristics.is_empty() {
             return String::from("");
         }
 
         let characterisitics: Vec<String> = self
-            .characteristics()
+            .characteristics
             .iter()
             .map(|t| format!("| {}\n| {}", t.0, t.1))
             .collect();
@@ -76,7 +99,7 @@ impl dyn Manpage {
             "== DESCRIPTION
 
 {}",
-            self.description()
+            self.description
         )
     }
 

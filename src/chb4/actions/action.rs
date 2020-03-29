@@ -1,7 +1,7 @@
 use crate::{
     database::User,
     helpers::prettify_bool,
-    manpages::{Chapter, Manpage},
+    manpages::{Chapter, ManpageTrait},
     message::{Message, MessageConsumer, Result},
 };
 use regex::Regex;
@@ -72,7 +72,7 @@ impl fmt::Debug for Action {
     }
 }
 
-impl Manpage for Action {
+impl ManpageTrait for Action {
     fn names(&self) -> Vec<&str> {
         vec![self.name]
     }

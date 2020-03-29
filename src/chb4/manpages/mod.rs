@@ -4,4 +4,4 @@ mod manpage;
 
 pub use chapter::Chapter;
 pub use index::Index;
-pub use manpage::Manpage;
+pub use manpage::{Manpage, ManpageTrait};

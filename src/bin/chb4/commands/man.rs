@@ -1,11 +1,5 @@
 use super::prelude::*;
 
-fn command() {
-    Command::with_name("man")
-        .command(|args, msg| {
-            lazy_static! {
-                static ref COMMANDS: Vec<Command> = super::commands();
-            }
-        })
-        .done()
+fn command(context: Arc<BotContext>) {
+    Command::with_name("man").command(|args, msg| {}).done()
 }

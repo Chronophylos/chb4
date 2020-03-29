@@ -1,7 +1,7 @@
 use crate::{
     database::User,
     helpers::prettify_bool,
-    manpages::{Chapter, Manpage},
+    manpages::{Chapter, ManpageTrait},
     message::{Message, MessageConsumer, Result},
 };
 use std::{fmt, sync::Arc};
@@ -71,7 +71,7 @@ impl fmt::Debug for Command {
     }
 }
 
-impl Manpage for Command {
+impl ManpageTrait for Command {
     fn names(&self) -> Vec<&str> {
         let mut aliases = self.aliases.clone();
         aliases.insert(0, self.name);

@@ -1,4 +1,4 @@
-use super::{Chapter, Manpage};
+use super::{Chapter, Manpage, ManpageTrait};
 use snafu::{ResultExt, Snafu};
 use std::{collections::HashMap, path::Path, sync::Arc};
 
@@ -12,25 +12,26 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Default)]
-pub struct Index {
-    pages: HashMap<Chapter, Vec<Arc<dyn Manpage>>>,
+#[derive(Default, Clone)]
+pub struct Index<'a> {
+    pages: HashMap<Chapter, Vec<Arc<Manpage<'a>>>>,
 }
 
-impl Index {
+impl<T> Index<'_, T>
+where
+    T: ManpageTrait,
+{
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn populate<T>(&mut self, pages: Vec<Arc<T>>)
-    where
-        T: Manpage + 'static,
-    {
+    pub fn populate(&mut self, pages: Vec<Arc<T>>) {
         for page in pages {
             match self.pages.get_mut(&page.chapter()) {
-                Some(pages) => pages.push(page.clone()),
+                Some(pages) => pages.push(Manpage::new(page.clone())),
                 None => {
-                    self.pages.insert(page.chapter(), vec![page.clone()]);
+                    self.pages
+                        .insert(page.chapter(), vec![Manpage::new(page.clone())]);
                 }
             };
         }
