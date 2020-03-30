@@ -16,39 +16,20 @@ pub enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-pub trait ManpageTrait {
-    fn names(&self) -> Vec<&str>;
-    fn chapter(&self) -> Chapter;
-    fn name(&self) -> &str;
-    fn description(&self) -> &str;
-    fn example(&self) -> Option<&str>;
-    fn characteristics(&self) -> Vec<(&str, &str)>;
+pub trait ManpageProducer {
+    fn get_manpage(&self) -> Manpage;
 }
 
-pub struct Manpage<'a> {
-    names: Vec<&'a str>,
+pub struct Manpage {
+    names: Vec<String>,
     chapter: Chapter,
-    name: &'a str,
-    description: &'a str,
-    example: Option<&'a str>,
-    characteristics: Vec<(&'a str, &'a str)>,
+    name: String,
+    description: String,
+    example: Option<String>,
+    characteristics: Vec<(String, String)>,
 }
 
-impl Manpage<'_> {
-    pub fn new<T>(manpage: T) -> Self
-    where
-        T: ManpageTrait,
-    {
-        Self {
-            names: manpage.names(),
-            chapter: manpage.chapter(),
-            name: manpage.name(),
-            description: manpage.description(),
-            example: manpage.example(),
-            characteristics: manpage.characteristics(),
-        }
-    }
-
+impl Manpage {
     fn render_title(&self) -> Result<String> {
         Ok(format!("= {}", self.names.get(0).context(GetName)?))
     }

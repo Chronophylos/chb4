@@ -1,7 +1,7 @@
 use crate::{
     database::User,
     helpers::prettify_bool,
-    manpages::{Chapter, ManpageTrait},
+    manpages::{Chapter, Manpage, ManpageProducer},
     message::{Message, MessageConsumer, Result},
 };
 use regex::Regex;
@@ -72,32 +72,21 @@ impl fmt::Debug for Action {
     }
 }
 
-impl ManpageTrait for Action {
-    fn names(&self) -> Vec<&str> {
-        vec![self.name]
-    }
-
-    fn chapter(&self) -> Chapter {
-        Chapter::Action
-    }
-
-    fn name(&self) -> &str {
-        self.about
-    }
-
-    fn description(&self) -> &str {
-        self.description
-    }
-
-    fn example(&self) -> Option<&str> {
-        self.example
-    }
-
-    fn characteristics(&self) -> Vec<(&str, &str)> {
-        vec![
+impl ManpageProducer for Action {
+    fn get_manpage(&self) -> Manpage {
+        let characteristics = vec![
             ("chainable", "no"),
             ("whitelisted", prettify_bool(self.whitelisted)),
-        ]
+        ];
+
+        Manpage {
+            names: vec![self.name.to_owned()],
+            chapter: Chapter::Action,
+            name: self.about.to_owned(),
+            description: self.description.to_owned(),
+            example: self.example.map(String::to_owned()),
+            characteristics,
+        }
     }
 }
 

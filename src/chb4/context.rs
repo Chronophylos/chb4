@@ -24,7 +24,7 @@ pub struct BotContext {
     scheduler: Scheduler,
 
     // manpage index
-    manpage_index: Arc<manpages::Index<'static>>,
+    manpage_index: Arc<manpages::Index>,
 
     clock: Instant,
     pub version: &'static str,

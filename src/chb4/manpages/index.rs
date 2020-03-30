@@ -1,4 +1,4 @@
-use super::{Chapter, Manpage, ManpageTrait};
+use super::{Chapter, Manpage, ManpageProducer};
 use snafu::{ResultExt, Snafu};
 use std::{collections::HashMap, path::Path, sync::Arc};
 
@@ -13,25 +13,24 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Default, Clone)]
-pub struct Index<'a> {
-    pages: HashMap<Chapter, Vec<Arc<Manpage<'a>>>>,
+pub struct Index {
+    pages: HashMap<Chapter, Vec<Arc<Manpage>>>,
 }
 
-impl<T> Index<'_, T>
-where
-    T: ManpageTrait,
-{
+impl Index {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn populate(&mut self, pages: Vec<Arc<T>>) {
+    pub fn populate<T>(&mut self, pages: Vec<Arc<T>>)
+    where
+        T: ManpageProducer,
+    {
         for page in pages {
             match self.pages.get_mut(&page.chapter()) {
-                Some(pages) => pages.push(Manpage::new(page.clone())),
+                Some(pages) => pages.push(page.get_manpage()),
                 None => {
-                    self.pages
-                        .insert(page.chapter(), vec![Manpage::new(page.clone())]);
+                    self.pages.insert(page.chapter(), vec![page.get_manpage()]);
                 }
             };
         }
@@ -57,7 +56,7 @@ where
             pages
                 .iter()
                 .map(|page| {
-                    page.render_file(path.join(format!("{}.{}", page.name(), FILE_EXTENSION)))
+                    page.render_file(path.join(format!("{}.{}", page.name, FILE_EXTENSION)))
                         .context(RenderPage)
                 })
                 .collect::<Result<_>>()?;

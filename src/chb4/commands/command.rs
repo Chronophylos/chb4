@@ -1,7 +1,7 @@
 use crate::{
     database::User,
     helpers::prettify_bool,
-    manpages::{Chapter, ManpageTrait},
+    manpages::{Chapter, Manpage, ManpageProducer},
     message::{Message, MessageConsumer, Result},
 };
 use std::{fmt, sync::Arc};
@@ -71,34 +71,24 @@ impl fmt::Debug for Command {
     }
 }
 
-impl ManpageTrait for Command {
-    fn names(&self) -> Vec<&str> {
-        let mut aliases = self.aliases.clone();
-        aliases.insert(0, self.name);
-        aliases
-    }
+impl ManpageProducer for Command {
+    fn get_manpage(&self) -> Manpage {
+        let mut names = self.aliases.clone();
+        names.insert(0, self.name);
 
-    fn chapter(&self) -> Chapter {
-        Chapter::Command
-    }
-
-    fn name(&self) -> &str {
-        self.about
-    }
-
-    fn description(&self) -> &str {
-        self.description
-    }
-
-    fn example(&self) -> Option<&str> {
-        self.example
-    }
-
-    fn characteristics(&self) -> Vec<(&str, &str)> {
-        vec![
+        let characteristics = vec![
             ("chainable", prettify_bool(self.chainable)),
             ("whitelisted", prettify_bool(self.whitelisted)),
-        ]
+        ];
+
+        Manpage {
+            names,
+            chapter: Chapter::Command,
+            name: self.about.to_owned(),
+            description: self.description.to_owned(),
+            example: self.example.map(String::to_owned()),
+            characteristics,
+        }
     }
 }
 
