@@ -1,7 +1,7 @@
 use crate::{
     database::User,
     helpers::prettify_bool,
-    manpages::{Chapter, Manpage, ManpageProducer},
+    manpages::{ChapterName, Manpage, ManpageProducer},
     message::{Message, MessageConsumer, Result},
 };
 use std::{fmt, sync::Arc};
@@ -76,19 +76,30 @@ impl ManpageProducer for Command {
         let mut names = self.aliases.clone();
         names.insert(0, self.name);
 
+        let names = names
+            .iter()
+            .map(|x| (*x).to_string())
+            .collect::<Vec<String>>();
+
         let characteristics = vec![
-            ("chainable", prettify_bool(self.chainable)),
-            ("whitelisted", prettify_bool(self.whitelisted)),
+            (
+                String::from("chainable"),
+                prettify_bool(self.chainable).to_owned(),
+            ),
+            (
+                String::from("whitelisted"),
+                prettify_bool(self.whitelisted).to_owned(),
+            ),
         ];
 
-        Manpage {
+        Manpage::new(
             names,
-            chapter: Chapter::Command,
-            name: self.about.to_owned(),
-            description: self.description.to_owned(),
-            example: self.example.map(String::to_owned()),
+            ChapterName::Command,
+            self.about.to_owned(),
+            self.description.to_owned(),
+            self.example.map(|s| s.to_owned()),
             characteristics,
-        }
+        )
     }
 }
 

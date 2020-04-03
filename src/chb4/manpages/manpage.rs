@@ -1,6 +1,6 @@
-use super::Chapter;
+use super::ChapterName;
 use snafu::{OptionExt, ResultExt, Snafu};
-use std::{fs::File, io::prelude::*, path::Path};
+use std::{fmt, fs::File, io::prelude::*, path::Path};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -22,7 +22,7 @@ pub trait ManpageProducer {
 
 pub struct Manpage {
     names: Vec<String>,
-    chapter: Chapter,
+    pub chapter: ChapterName,
     name: String,
     description: String,
     example: Option<String>,
@@ -30,6 +30,32 @@ pub struct Manpage {
 }
 
 impl Manpage {
+    pub fn new(
+        names: Vec<String>,
+        chapter: ChapterName,
+        name: String,
+        description: String,
+        example: Option<String>,
+        characteristics: Vec<(String, String)>,
+    ) -> Self {
+        Self {
+            names,
+            chapter,
+            name,
+            description,
+            example,
+            characteristics,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        self.names.get(0).unwrap()
+    }
+
+    pub fn other_names(&self) -> Vec<String> {
+        self.names[1..].to_vec()
+    }
+
     fn render_title(&self) -> Result<String> {
         Ok(format!("= {}", self.names.get(0).context(GetName)?))
     }
@@ -103,5 +129,15 @@ impl Manpage {
         let mut f = File::create(path).context(CreateFile)?;
 
         f.write_all(self.render()?.as_bytes()).context(WriteFile)
+    }
+}
+
+impl fmt::Display for Manpage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())?;
+        if self.names.len() > 1 {
+            write!(f, " ({})", self.other_names().join(", "))?;
+        }
+        write!(f, " {}", self.name)
     }
 }

@@ -5,7 +5,7 @@ mod prelude;
 
 mod admin;
 mod color;
-//mod font;
+mod man;
 mod math;
 mod ping;
 mod quote;
@@ -16,7 +16,7 @@ pub fn all(context: Arc<BotContext>) -> Vec<Arc<Command>> {
     vec![
         admin::command(context.clone()),
         color::command(),
-        //font::command(),
+        man::command(context.clone()),
         math::command(),
         ping::command(context.clone()),
         quote::command(context.clone()),

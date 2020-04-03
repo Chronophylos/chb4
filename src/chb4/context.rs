@@ -8,10 +8,11 @@ use std::{
 
 pub type Connection = crate::database::Connection;
 
-type Pool = diesel::r2d2::Pool<ConnectionManager<Connection>>;
-type Conn = PooledConnection<ConnectionManager<Connection>>;
+type Manager = ConnectionManager<Connection>;
+type Pool = diesel::r2d2::Pool<Manager>;
+type Conn = PooledConnection<Manager>;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct BotContext {
     config: Config,
     // connection pool for database
@@ -36,10 +37,15 @@ impl BotContext {
             config,
             pool,
             twitchbot,
+            scheduler: Scheduler::new(),
+            manpage_index: Arc::new(manpages::Index::new()),
             clock: Instant::now(),
             version: env!("CARGO_PKG_VERSION"),
-            ..Self::default()
         })
+    }
+
+    pub fn set_manpage_index(&mut self, index: Arc<manpages::Index>) {
+        self.manpage_index = index;
     }
 
     pub fn pool(&self) -> &Pool {
@@ -64,6 +70,14 @@ impl BotContext {
 
     pub fn scheduler(&self) -> &Scheduler {
         &self.scheduler
+    }
+
+    pub fn whatis(
+        &self,
+        chapter: Option<manpages::ChapterName>,
+        name: String,
+    ) -> Option<Arc<manpages::Manpage>> {
+        self.manpage_index.whatis(chapter, name)
     }
 
     /// Get the duration how long ago this context was created

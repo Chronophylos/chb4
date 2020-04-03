@@ -1,4 +1,4 @@
-use super::{Chapter, Manpage, ManpageProducer};
+use super::{Chapter, ChapterName, Manpage, ManpageProducer};
 use snafu::{ResultExt, Snafu};
 use std::{collections::HashMap, path::Path, sync::Arc};
 
@@ -12,9 +12,9 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct Index {
-    pages: HashMap<Chapter, Vec<Arc<Manpage>>>,
+    chapters: HashMap<ChapterName, Chapter>,
 }
 
 impl Index {
@@ -26,13 +26,24 @@ impl Index {
     where
         T: ManpageProducer,
     {
-        for page in pages {
-            match self.pages.get_mut(&page.chapter()) {
-                Some(pages) => pages.push(page.get_manpage()),
+        for page in pages.iter().map(|p| Arc::new(p.get_manpage())) {
+            match self.chapters.get_mut(&page.chapter) {
+                Some(pages) => pages.insert(page),
                 None => {
-                    self.pages.insert(page.chapter(), vec![page.get_manpage()]);
+                    self.chapters
+                        .insert(page.chapter.clone(), Chapter::with_page(page));
                 }
-            };
+            }
+        }
+    }
+
+    pub fn whatis(&self, chapter: Option<ChapterName>, name: String) -> Option<Arc<Manpage>> {
+        match chapter {
+            Some(c) => match self.chapters.get(&c) {
+                Some(c) => c.get(name),
+                None => None,
+            },
+            None => self.chapters.iter().find_map(|(_, c)| c.get(name.clone())),
         }
     }
 
@@ -51,12 +62,12 @@ impl Index {
 
         info!("Writing documentation to {}", path.display());
 
-        for (chapter, pages) in self.pages.iter() {
-            let path = path.join(chapter.to_string());
-            pages
-                .iter()
+        for (chapter_name, chapter) in self.chapters.iter() {
+            let path = path.join(chapter_name.to_string());
+            chapter
+                .page_iter()
                 .map(|page| {
-                    page.render_file(path.join(format!("{}.{}", page.name, FILE_EXTENSION)))
+                    page.render_file(path.join(format!("{}.{}", page.name(), FILE_EXTENSION)))
                         .context(RenderPage)
                 })
                 .collect::<Result<_>>()?;

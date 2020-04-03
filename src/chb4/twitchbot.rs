@@ -4,7 +4,7 @@ use futures_executor::block_on;
 use snafu::{ResultExt, Snafu};
 use std::{convert::TryInto, sync::Arc};
 use tokio::stream::StreamExt as _;
-use twitchchat::{events, Control, Dispatcher, IntoChannel, Runner, Status, Writer};
+use twitchchat::{events, Control, Dispatcher, Runner, Status, Writer};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -60,55 +60,64 @@ impl TwitchBot {
         })
     }
 
-    pub async fn run<C>(
-        self,
+    pub async fn start<C>(
+        &self,
         context: Arc<BotContext>,
-        runner: Runner,
         handlers: Vec<Arc<dyn Twitch>>,
         channels: Vec<C>,
-    ) -> Result<Status>
+    ) -> Result<()>
     where
-        C: IntoChannel,
+        C: Into<String>,
     {
-        let config = context.config();
-        let name = config.get_str("twitch.name").context(GetNameFromConfig)?;
-        let token = config.get_str("twitch.pass").context(GetTokenFromConfig)?;
-        let mut writer = self.writer.clone();
+        trace!("Running TwitchBot");
 
-        // create connection
-        let conn = twitchchat::connect_easy_tls(&name, &token)
-            .await
-            .context(Connect {
-                server: twitchchat::TWITCH_IRC_ADDRESS_TLS,
-            })?;
+        let mut writer = self.writer.clone();
 
         // subscribe to events
         let mut privmsg = self.dispatcher.subscribe::<events::Privmsg>();
         let mut join = self.dispatcher.subscribe::<events::Join>();
 
         // wait until irc is ready
-        let ready = self
-            .dispatcher
-            .wait_for::<events::IrcReady>()
-            .await
-            .context(WaitForIrcReady)?;
-        info!(
-            "Connected to {} as {}",
-            twitchchat::TWITCH_IRC_ADDRESS_TLS,
-            ready.nickname
-        );
+        {
+            debug!("Waiting for IRCREADY");
+            let dispatcher = self.dispatcher.clone();
+            block_on(async move {
+                let ready = dispatcher
+                    .wait_for::<events::IrcReady>()
+                    .await
+                    .context(WaitForIrcReady)
+                    .unwrap();
+                info!(
+                    "Connected to {} as {}",
+                    twitchchat::TWITCH_IRC_ADDRESS_TLS,
+                    ready.nickname
+                );
+            });
+        }
 
         // join channels
         for channel in channels {
-            match writer.join(channel).await {
-                Ok(_) => {}
-                Err(e) => error!("Could not send join message: {}", e),
-            }
+            let channel: String = channel.into();
+            let mut writer = writer.clone();
+
+            trace!("Joining {}", channel);
+
+            tokio::task::spawn(async move {
+                match writer.join(channel).await {
+                    Ok(_) => {}
+                    Err(e) => error!("Could not send join message: {}", e),
+                }
+            });
         }
 
-        // start loops
+        // handle privmsg
         {
             let context = context.clone();
+            let name = context
+                .config()
+                .get_str("twitch.nick")
+                .context(GetNameFromConfig)?;
+
             tokio::task::spawn(async move {
                 while let Some(msg) = privmsg.next().await {
                     // this variable name should not be changed.
@@ -163,15 +172,16 @@ impl TwitchBot {
             });
         }
 
+        // handle join
         {
-            let context = context.clone();
+            let context = context;
             tokio::task::spawn(async move {
                 let bot_name = context.bot_name();
                 while let Some(msg) = join.next().await {
-                    // we've joined a channel
-                    info!("Joined {}", msg.channel);
-
                     if msg.channel == bot_name {
+                        // we've joined a channel
+                        info!("Joined {}", msg.channel);
+
                         if let Err(err) = writer
                             .privmsg(
                                 &msg.channel,
@@ -186,8 +196,26 @@ impl TwitchBot {
             });
         }
 
-        // run dispatcher/writer loop
-        Ok(runner.run(conn).await.context(RunRunner)?)
+        Ok(())
+    }
+
+    pub async fn connect(&self, runner: Runner, context: Arc<BotContext>) -> Result<Status> {
+        let config = context.config();
+        let name = config.get_str("twitch.nick").context(GetNameFromConfig)?;
+        let token = config.get_str("twitch.pass").context(GetTokenFromConfig)?;
+
+        debug!("Connecting to {}", twitchchat::TWITCH_IRC_ADDRESS_TLS);
+
+        // create connection
+        let conn = twitchchat::connect_easy_tls(&name, &token)
+            .await
+            .context(Connect {
+                server: twitchchat::TWITCH_IRC_ADDRESS_TLS,
+            })?;
+
+        trace!("Connected. Running runner");
+
+        runner.run(conn).await.context(RunRunner)
     }
 
     pub fn writer(&self) -> Writer {
@@ -215,10 +243,9 @@ impl TwitchBot {
             channel: channel.to_string(),
         })
     }
-}
 
-impl Drop for TwitchBot {
-    fn drop(&mut self) {
+    pub fn cleanup(&self) {
+        trace!("Cleaning up after TwitchBot");
         self.dispatcher.clear_subscriptions_all();
     }
 }

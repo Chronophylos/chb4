@@ -1,7 +1,7 @@
 use crate::{
     database::User,
     helpers::prettify_bool,
-    manpages::{Chapter, Manpage, ManpageProducer},
+    manpages::{ChapterName, Manpage, ManpageProducer},
     message::{Message, MessageConsumer, Result},
 };
 use regex::Regex;
@@ -75,18 +75,21 @@ impl fmt::Debug for Action {
 impl ManpageProducer for Action {
     fn get_manpage(&self) -> Manpage {
         let characteristics = vec![
-            ("chainable", "no"),
-            ("whitelisted", prettify_bool(self.whitelisted)),
+            (String::from("chainable"), String::from("no")),
+            (
+                String::from("whitelisted"),
+                prettify_bool(self.whitelisted).to_owned(),
+            ),
         ];
 
-        Manpage {
-            names: vec![self.name.to_owned()],
-            chapter: Chapter::Action,
-            name: self.about.to_owned(),
-            description: self.description.to_owned(),
-            example: self.example.map(String::to_owned()),
+        Manpage::new(
+            vec![self.name.to_owned()],
+            ChapterName::Action,
+            self.about.to_owned(),
+            self.description.to_owned(),
+            self.example.map(|s| s.to_owned()),
             characteristics,
-        }
+        )
     }
 }
 

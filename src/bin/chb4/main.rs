@@ -72,7 +72,7 @@ async fn main() {
     let pool = r2d2::Pool::builder().build(manager).unwrap();
     debug!("Created Database Pool");
 
-    let context = BotContext::new(config, pool, twitchbot.clone());
+    let mut context = BotContext::new(config, pool, twitchbot.clone());
     debug!("Created Bot Context");
 
     let action_index = actions::all(context.clone());
@@ -83,7 +83,7 @@ async fn main() {
     manpage_index.populate(command_index.clone());
     debug!("Created and populated Manpages");
 
-    context.set_manpage_index(manpage_index);
+    Arc::make_mut(&mut context).set_manpage_index(Arc::new(manpage_index));
 
     let action_handler = ActionHandler::new(context.clone(), action_index);
     debug!("Created Action Handler");
@@ -106,14 +106,13 @@ async fn main() {
         Channel::all_enabled(conn).unwrap()
     };
 
-    let done = (*twitchbot)
-        .clone()
-        .run(context.clone(), runner, twitch_handlers, channels);
+    debug!("Found {} channels to join", channels.len());
 
     // schedule voicemails
     {
         let context = context.clone();
         tokio::task::spawn(async move {
+            trace!("Scheduling old voicemails");
             let conn = &context.conn();
             let voicemails = match Voicemail::active_scheduled(conn) {
                 Ok(v) => match v {
@@ -135,23 +134,38 @@ async fn main() {
         });
     }
 
+    {
+        let twitchbot = twitchbot.clone();
+        let context = context.clone();
+        tokio::task::spawn(async move {
+            if let Err(e) = twitchbot.start(context, twitch_handlers, channels).await {
+                error!("Could not start TwitchBot: {}", e);
+            }
+        });
+    }
+
     // await for the client to be done
-    let (twitchbot_result, _) = tokio::join!(
-        // await tmi client
-        done,
-        // await scheduler
-        context.scheduler().run(context.clone()),
+    debug!("Waiting for futures");
+    tokio::select!(
+        // twitchbot
+        status = twitchbot.connect(runner, context.clone()) => {
+            match status {
+                Ok(Status::Eof) => {
+                    info!("TwitchBot got a EOF");
+                }
+                Ok(Status::Canceled) => {
+                    info!("TwitchBot was stopped by user");
+                }
+                Err(e) => {
+                    error!("Error connecting TwitchBot: {}", e);
+                }
+            }
+        },
+        // scheduler
+        _ = context.scheduler().run(context.clone()) => {
+            info!("Finished running Voicemail Scheduler")
+        },
     );
 
-    match twitchbot_result {
-        Ok(Status::Eof) => {
-            info!("TwitchBot is done");
-        }
-        Ok(Status::Canceled) => {
-            info!("TwitchBot was stopped by user");
-        }
-        Err(e) => {
-            error!("Error running TwitchBot: {}", e);
-        }
-    }
+    twitchbot.cleanup();
 }
