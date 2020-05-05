@@ -63,6 +63,7 @@ impl Scheduler {
             .unwrap()
             .clone()
             .writer()
+            .unwrap()
             .privmsg(
                 &channel_name,
                 &format!(

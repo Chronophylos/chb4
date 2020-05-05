@@ -74,7 +74,14 @@ impl Twitch for CommandHandler {
                 if !cmd.whitelisted() {
                     // or the command is enabled in this channel
 
-                    let mut writer = self.context.twitchbot().read().unwrap().clone().writer();
+                    let mut writer = self
+                        .context
+                        .twitchbot()
+                        .read()
+                        .unwrap()
+                        .clone()
+                        .writer()
+                        .unwrap();
 
                     trace!("Executing command");
                     match cmd.consume(args.to_vec(), Message::TwitchPrivmsg(msg.clone()), user) {

@@ -1,7 +1,12 @@
-use crate::{context::BotContext, database::User, handler::Twitch, Stopwatch};
+use crate::{
+    context::BotContext,
+    database::{self, User},
+    handler::Twitch,
+    Stopwatch,
+};
 use chrono::prelude::*;
 use futures_executor::block_on;
-use snafu::{ResultExt, Snafu};
+use snafu::{OptionExt, ResultExt, Snafu};
 use std::{convert::TryInto, sync::Arc};
 use tokio::stream::StreamExt as _;
 use twitchchat::{events, messages, Control, Dispatcher, RateLimit, Runner, Status, Writer};
@@ -16,12 +21,6 @@ pub enum Error {
 
     #[snafu(display("Waiting for IRC Ready message: {}", source))]
     WaitForIrcReady { source: twitchchat::Error },
-
-    #[snafu(display("Getting twitch username from config: {}", source))]
-    GetNameFromConfig { source: config::ConfigError },
-
-    #[snafu(display("Getting twitch token from config: {}", source))]
-    GetTokenFromConfig { source: config::ConfigError },
 
     #[snafu(display("Running runner: {}", source))]
     RunRunner { source: twitchchat::Error },
@@ -40,6 +39,30 @@ pub enum Error {
         source: twitchchat::Error,
         channel: String,
     },
+
+    #[snafu(display("Sending privmsg (channel: {}): {}", channel, source))]
+    SendPrivmsg {
+        source: twitchchat::Error,
+        channel: String,
+    },
+
+    #[snafu(display("Bumping user: {}", source))]
+    BumpUser { source: database::user::Error },
+
+    #[snafu(display("Writer is not set"))]
+    GetWriter,
+
+    #[snafu(display("Name is not set"))]
+    GetName,
+
+    #[snafu(display("Could not get user id from message"))]
+    GetUserID,
+
+    #[snafu(display("Could not get display name from message"))]
+    GetDisplayName,
+
+    #[snafu(display("Converting user id (u64) to i64: {}", source))]
+    ConvertUserID { source: std::num::TryFromIntError },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -73,7 +96,11 @@ impl TwitchBot {
 
         let bot = self.run(context, dispatcher.clone(), handlers, initial_channels);
 
-        let stream = twitchchat::connect_easy_tls(&name, &token).await.unwrap();
+        let stream = twitchchat::connect_easy_tls(&name, &token)
+            .await
+            .context(Connect {
+                server: twitchchat::TWITCH_IRC_ADDRESS_TLS,
+            })?;
         let done = runner.run(stream);
 
         tokio::select! {
@@ -100,16 +127,19 @@ impl TwitchBot {
         dispatcher: Dispatcher,
         handlers: Vec<Arc<dyn Twitch>>,
         channels: Vec<String>,
-    ) {
+    ) -> Result<()> {
         // get a writer clone
-        let mut writer = self.writer.clone().unwrap();
+        let mut writer = self.writer.clone().context(GetWriter)?;
 
         // subscribe to the events we're interested in
         let mut privmsg = dispatcher.subscribe::<events::Privmsg>();
         let mut join = dispatcher.subscribe::<events::Join>();
 
-        // and wait for a specific event (blocks the current task)
-        let ready = dispatcher.wait_for::<events::IrcReady>().await.unwrap();
+        // and wait for a irc ready event (blocks the current task)
+        let ready = dispatcher
+            .wait_for::<events::IrcReady>()
+            .await
+            .context(WaitForIrcReady)?;
         info!(
             "Connected to {} as {}",
             twitchchat::TWITCH_IRC_ADDRESS_TLS,
@@ -119,8 +149,11 @@ impl TwitchBot {
         // and then join some channels
         info!("Joining twitch channels (count: {})", channels.len());
         for channel in channels {
-            debug!("Joining channel (name: {})", channel);
-            writer.join(channel).await.unwrap();
+            debug!("Joining channel (name: {})", &channel);
+            writer
+                .join(&channel)
+                .await
+                .context(JoinChannel { channel })?;
         }
 
         // and then our 'main loop'
@@ -129,15 +162,21 @@ impl TwitchBot {
             tokio::select! {
                 Some(msg) = privmsg.next() => {
                     trace!("Got chat message (provider: twitch, channel: {})", &msg.channel);
-                    self.handle_privmsg(context.clone(), &handlers, &msg).await;
+                    if let Err(err) = self.handle_privmsg(context.clone(), &handlers, &msg).await {
+                        error!("Failed to handle privmsg: {}", err);
+                    };
                 },
                 Some(msg) = join.next() => {
                     trace!("Got join message (provider: twitch, channel: {})", &msg.channel);
-                    self.handle_join(context.clone(), &msg).await;
+                    if let Err(err) = self.handle_join(context.clone(), &msg).await {
+                        error!("Failed to handle join: {}", err);
+                    };
                 },
                 else => break,
             }
         }
+
+        Ok(())
     }
 
     async fn handle_privmsg(
@@ -145,7 +184,7 @@ impl TwitchBot {
         context: Arc<BotContext>,
         handlers: &Vec<Arc<dyn Twitch>>,
         msg: &messages::Privmsg<'_>,
-    ) {
+    ) -> Result<()> {
         // this variable name should not be changed.
         // having no name or _  as name just drops the Stopwatch instantly.
         // and having no _ infront annoys the compiler
@@ -155,31 +194,30 @@ impl TwitchBot {
 
         trace!("Got PRIVMSG message");
 
-        if msg.name == self.name.clone().unwrap() {
+        if msg.name == self.name.clone().context(GetName)? {
             // message must be sent by the bot -> ignore it
             trace!("ignoring PRIVMSG since it was sent by the bot");
-            return;
+            return Ok(());
         }
 
         // bump the user in database
         let user = {
             // todo: check all of the unwraps for errors
-            let user_id = msg.user_id().unwrap().try_into().unwrap();
+            let user_id = msg
+                .user_id()
+                .context(GetUserID)?
+                .try_into()
+                .context(ConvertUserID)?;
             let name = msg.name.to_owned();
-            let display_name = msg.display_name().unwrap();
+            let display_name = msg.display_name().context(GetDisplayName)?;
             let now = Local::now();
 
-            let user = match User::bump(&context.conn(), user_id, &name, &display_name, &now) {
-                Ok(u) => u,
-                Err(e) => {
-                    error!("{}", e);
-                    return;
-                }
-            };
+            let user = User::bump(&context.conn(), user_id, &name, &display_name, &now)
+                .context(BumpUser)?;
 
             if user.banned(&now) {
                 trace!("User {} is banned. Ignoring message.", user.name);
-                return;
+                return Ok(());
             }
 
             user
@@ -188,44 +226,62 @@ impl TwitchBot {
         for handler in handlers {
             handler.handle(Arc::new(msg.clone()), &user).await;
         }
+
+        Ok(())
     }
 
-    async fn handle_join(&self, context: Arc<BotContext>, msg: &messages::Join<'_>) {
-        if msg.channel == self.name.clone().unwrap() {
+    async fn handle_join(&self, context: Arc<BotContext>, msg: &messages::Join<'_>) -> Result<()> {
+        if msg.channel == self.name.clone().context(GetName)? {
             // we've joined a channel
             info!("Joined {}", msg.channel);
 
-            if let Err(err) = self
-                .writer
+            self.writer
                 .clone()
-                .unwrap()
+                .context(GetWriter)?
                 .privmsg(
                     &msg.channel,
                     &format!("Connected with version {}", context.version),
                 )
                 .await
-            {
-                error!("Could not write to channel {}", err);
-            }
+                .context(SendPrivmsg {
+                    channel: msg.channel.clone(),
+                })?
         }
+
+        Ok(())
     }
 
     pub fn stop(&self) {
+        // get control
         let control = self.control.clone().unwrap();
+
+        // spawn thread to stop bot
         tokio::spawn(async move { control.stop() });
     }
 
     pub fn join(&self, channel: &str) -> Result<()> {
-        block_on(async { self.writer.clone().unwrap().join(channel).await })
-            .context(JoinChannel { channel })
+        block_on(async {
+            self.writer
+                .clone()
+                .context(GetWriter)?
+                .join(channel)
+                .await
+                .context(JoinChannel { channel })
+        })
     }
 
     pub fn part(&self, channel: &str) -> Result<()> {
-        block_on(async { self.writer.clone().unwrap().part(channel).await })
-            .context(PartChannel { channel })
+        block_on(async {
+            self.writer
+                .clone()
+                .context(GetWriter)?
+                .part(channel)
+                .await
+                .context(PartChannel { channel })
+        })
     }
 
-    pub fn writer(self) -> Writer {
-        self.writer.unwrap().clone()
+    pub fn writer(self) -> Result<Writer> {
+        self.writer.context(GetWriter)
     }
 }

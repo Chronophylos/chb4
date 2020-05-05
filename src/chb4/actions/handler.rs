@@ -34,7 +34,14 @@ impl Twitch for ActionHandler {
         let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
 
         let actions = self.actions.iter().filter(|&act| act.is_match(&message));
-        let mut writer = self.context.twitchbot().read().unwrap().clone().writer();
+        let mut writer = self
+            .context
+            .twitchbot()
+            .read()
+            .unwrap()
+            .clone()
+            .writer()
+            .unwrap();
 
         for action in actions {
             debug!("Found matching action {:?}", action);
