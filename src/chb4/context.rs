@@ -73,7 +73,7 @@ impl BotContext {
     }
 
     pub async fn run_scheduler(this: Arc<Self>) {
-        this.scheduler.run(this.clone()).await
+        this.scheduler.run(this.clone()).await.unwrap()
     }
 
     pub async fn connect_twitchbot(

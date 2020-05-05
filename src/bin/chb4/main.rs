@@ -124,7 +124,7 @@ async fn main() {
             };
 
             for voicemail in voicemails {
-                context.scheduler().schedule(voicemail);
+                context.scheduler().schedule(voicemail).unwrap();
             }
         });
     }

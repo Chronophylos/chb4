@@ -7,6 +7,7 @@ extern crate futures_executor;
 extern crate humantime;
 extern crate nom;
 extern crate r2d2;
+extern crate time;
 
 pub mod actions;
 pub mod commands;

@@ -50,7 +50,7 @@ pub fn command(context: Arc<BotContext>) -> Arc<Command> {
                         // actually schedule voicemail
 
                         for voicemail in voicemails {
-                            context.scheduler().schedule(voicemail);
+                            context.scheduler().schedule(voicemail).unwrap();
                         }
 
                         Ok(MessageResult::Message(format!(
