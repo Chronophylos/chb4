@@ -1,8 +1,8 @@
-use crate::{manpages, voicemail::Scheduler, TwitchBot};
+use crate::{handler::Twitch, manpages, twitchbot, voicemail::Scheduler, TwitchBot};
 use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use std::{
-    sync::Arc,
+    sync::{Arc, RwLock},
     time::{Duration, Instant},
 };
 
@@ -19,10 +19,10 @@ pub struct BotContext {
     pool: Pool,
 
     // bot for twitch
-    twitchbot: Arc<TwitchBot>,
+    twitchbot: Arc<RwLock<TwitchBot>>,
 
     // voicemail scheduler
-    scheduler: Scheduler,
+    scheduler: Arc<Scheduler>,
 
     // manpage index
     manpage_index: Arc<manpages::Index>,
@@ -32,12 +32,12 @@ pub struct BotContext {
 }
 
 impl BotContext {
-    pub fn new(config: Config, pool: Pool, twitchbot: Arc<TwitchBot>) -> Arc<Self> {
+    pub fn new(config: Config, pool: Pool) -> Arc<Self> {
         Arc::new(Self {
             config,
             pool,
-            twitchbot,
-            scheduler: Scheduler::new(),
+            twitchbot: Arc::new(RwLock::new(TwitchBot::new())),
+            scheduler: Arc::new(Scheduler::new()),
             manpage_index: Arc::new(manpages::Index::new()),
             clock: Instant::now(),
             version: env!("CARGO_PKG_VERSION"),
@@ -61,15 +61,34 @@ impl BotContext {
     }
 
     pub fn bot_name(&self) -> String {
-        self.config.get_str("twitch.nick").unwrap()
+        self.config.get_str("twitch.name").unwrap()
     }
 
-    pub fn twitchbot(&self) -> Arc<TwitchBot> {
+    pub fn twitchbot(&self) -> Arc<RwLock<TwitchBot>> {
         self.twitchbot.clone()
     }
 
-    pub fn scheduler(&self) -> &Scheduler {
-        &self.scheduler
+    pub fn scheduler(&self) -> Arc<Scheduler> {
+        self.scheduler.clone()
+    }
+
+    pub async fn run_scheduler(this: Arc<Self>) {
+        this.scheduler.run(this.clone()).await
+    }
+
+    pub async fn connect_twitchbot(
+        this: Arc<Self>,
+        handlers: Vec<Arc<dyn Twitch>>,
+        initial_channels: Vec<String>,
+    ) -> Result<(), twitchbot::Error> {
+        let name = this.config.get_str("twitch.name").unwrap();
+        let token = this.config.get_str("twitch.token").unwrap();
+
+        this.twitchbot()
+            .write()
+            .unwrap()
+            .start(this, name, token, handlers, initial_channels)
+            .await
     }
 
     pub fn whatis(

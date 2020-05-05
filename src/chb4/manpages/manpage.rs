@@ -110,6 +110,18 @@ impl Manpage {
         )
     }
 
+    fn render_example(&self) -> String {
+        match self.example.clone() {
+            Some(s) => format!(
+                "== EXAMPLE
+
+{}",
+                s
+            ),
+            None => String::new(),
+        }
+    }
+
     pub fn render(&self) -> Result<String> {
         let chunks = vec![
             self.render_title()?,
@@ -117,6 +129,7 @@ impl Manpage {
             self.render_name(),
             self.render_characteristics(),
             self.render_description(),
+            self.render_example(),
         ];
 
         Ok(chunks.join("\n\n"))

@@ -59,6 +59,9 @@ impl Scheduler {
 
         context
             .twitchbot()
+            .read()
+            .unwrap()
+            .clone()
             .writer()
             .privmsg(
                 &channel_name,

@@ -21,13 +21,12 @@ use chb4::{
     context::BotContext,
     database::{Channel, Voicemail},
     handler::Twitch,
-    manpages, TwitchBot,
+    manpages,
 };
 
 use config::{Config, Environment, File, FileFormat};
 use diesel::{r2d2, PgConnection};
 use std::{env, sync::Arc};
-use twitchchat::{Dispatcher, RateLimit, Runner, Status};
 
 /// The main is currently full of bloat. The plan is to move everything into their own module
 #[tokio::main]
@@ -63,16 +62,12 @@ async fn main() {
         .unwrap_or_else(|e| panic!("Loading config from env failed with {}", e));
     info!("Loaded config");
 
-    let dispatcher = Dispatcher::new();
-    let (runner, control) = Runner::new(dispatcher.clone(), RateLimit::default());
-    let twitchbot = TwitchBot::new(control, dispatcher.clone());
-
     let manager =
         r2d2::ConnectionManager::<PgConnection>::new(config.get_str("database.url").unwrap());
     let pool = r2d2::Pool::builder().build(manager).unwrap();
     debug!("Created Database Pool");
 
-    let mut context = BotContext::new(config, pool, twitchbot.clone());
+    let mut context = BotContext::new(config, pool);
     debug!("Created Bot Context");
 
     let action_index = actions::all(context.clone());
@@ -134,38 +129,26 @@ async fn main() {
         });
     }
 
-    {
-        let twitchbot = twitchbot.clone();
-        let context = context.clone();
-        tokio::task::spawn(async move {
-            if let Err(e) = twitchbot.start(context, twitch_handlers, channels).await {
-                error!("Could not start TwitchBot: {}", e);
-            }
-        });
-    }
-
     // await for the client to be done
-    debug!("Waiting for futures");
-    tokio::select!(
+    debug!("Waiting for futures to resolve");
+    let (twitchbot_result, _) = tokio::join!(
         // twitchbot
-        status = twitchbot.connect(runner, context.clone()) => {
-            match status {
-                Ok(Status::Eof) => {
-                    info!("TwitchBot got a EOF");
-                }
-                Ok(Status::Canceled) => {
-                    info!("TwitchBot was stopped by user");
-                }
-                Err(e) => {
-                    error!("Error connecting TwitchBot: {}", e);
-                }
-            }
-        },
+        BotContext::connect_twitchbot(context.clone(), twitch_handlers, channels),
         // scheduler
-        _ = context.scheduler().run(context.clone()) => {
-            info!("Finished running Voicemail Scheduler")
-        },
+        BotContext::run_scheduler(context.clone()),
     );
 
-    twitchbot.cleanup();
+    debug!("Features resolved {:?}", twitchbot_result);
+
+    //match twitchbot_result {
+    //    Ok(Status::Eof) => {
+    //        info!("TwitchBot got a EOF");
+    //    }
+    //    Ok(Status::Canceled) => {
+    //        info!("TwitchBot was stopped by user");
+    //    }
+    //    Err(e) => {
+    //        error!("Error connecting TwitchBot: {}", e);
+    //    }
+    //}
 }
