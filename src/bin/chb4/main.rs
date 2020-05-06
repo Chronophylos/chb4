@@ -86,7 +86,7 @@ async fn main() {
     let command_handler = CommandHandler::new(context.clone(), command_index);
     debug!("Created Command Handler");
 
-    let twitch_handlers: Vec<Arc<dyn Twitch>> = vec![
+    let twitch_handlers = [
         Arc::new(action_handler) as Arc<dyn Twitch>,
         Arc::new(command_handler) as Arc<dyn Twitch>,
     ];
@@ -133,7 +133,7 @@ async fn main() {
     debug!("Waiting for futures to resolve");
     let (twitchbot_result, _) = tokio::join!(
         // twitchbot
-        BotContext::connect_twitchbot(context.clone(), twitch_handlers, channels),
+        BotContext::connect_twitchbot(context.clone(), &twitch_handlers, channels),
         // scheduler
         BotContext::run_scheduler(context.clone()),
     );

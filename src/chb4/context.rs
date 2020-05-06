@@ -78,7 +78,7 @@ impl BotContext {
 
     pub async fn connect_twitchbot(
         this: Arc<Self>,
-        handlers: Vec<Arc<dyn Twitch>>,
+        handlers: &[Arc<dyn Twitch>],
         initial_channels: Vec<String>,
     ) -> Result<(), twitchbot::Error> {
         let name = this.config.get_str("twitch.name").unwrap();

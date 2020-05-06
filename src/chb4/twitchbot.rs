@@ -84,7 +84,7 @@ impl TwitchBot {
         context: Arc<BotContext>,
         name: String,
         token: String,
-        handlers: Vec<Arc<dyn Twitch>>,
+        handlers: &[Arc<dyn Twitch>],
         initial_channels: Vec<String>,
     ) -> Result<()> {
         self.name = Some(name.clone());
@@ -125,7 +125,7 @@ impl TwitchBot {
         &mut self,
         context: Arc<BotContext>,
         dispatcher: Dispatcher,
-        handlers: Vec<Arc<dyn Twitch>>,
+        handlers: &[Arc<dyn Twitch>],
         channels: Vec<String>,
     ) -> Result<()> {
         // get a writer clone
@@ -182,7 +182,7 @@ impl TwitchBot {
     async fn handle_privmsg(
         &self,
         context: Arc<BotContext>,
-        handlers: &Vec<Arc<dyn Twitch>>,
+        handlers: &[Arc<dyn Twitch>],
         msg: &messages::Privmsg<'_>,
     ) -> Result<()> {
         // this variable name should not be changed.
