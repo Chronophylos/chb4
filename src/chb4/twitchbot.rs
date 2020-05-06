@@ -202,7 +202,6 @@ impl TwitchBot {
 
         // bump the user in database
         let user = {
-            // todo: check all of the unwraps for errors
             let user_id = msg
                 .user_id()
                 .context(GetUserID)?

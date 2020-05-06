@@ -226,7 +226,7 @@ impl User {
         self.display_name
             .clone()
             .or_else(|| Some(self.name.clone()))
-            .unwrap()
+            .unwrap() // unwrap should never fail
     }
 }
 
