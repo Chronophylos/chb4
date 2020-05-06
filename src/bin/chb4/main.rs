@@ -19,22 +19,46 @@ use chb4::{
     actions::ActionHandler,
     commands::CommandHandler,
     context::BotContext,
-    database::{Channel, Voicemail},
+    database::{self, Channel, Voicemail},
     handler::Twitch,
     manpages,
 };
 
 use config::{Config, Environment, File, FileFormat};
-use diesel::{r2d2, PgConnection};
+use diesel::r2d2::{ConnectionManager, Pool};
+use snafu::{ResultExt, Snafu};
 use std::{env, sync::Arc};
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Initializing logger: {}", source))]
+    InitLogger {
+        source: flexi_logger::FlexiLoggerError,
+    },
+
+    #[snafu(display("Loading config from {}: {}", target, source))]
+    LoadConfig {
+        target: &'static str,
+        source: config::ConfigError,
+    },
+
+    #[snafu(display("Loading config entry: {}", source))]
+    GetConfigEntry { source: config::ConfigError },
+
+    #[snafu(display("Building R2D2 Pool: {}", source))]
+    BuildR2D2Pool { source: r2d2::Error },
+
+    #[snafu(display("Getting enabled channels: {}", source))]
+    GetEnabledChannels { source: database::channel::Error },
+}
 
 /// The main is currently full of bloat. The plan is to move everything into their own module
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<Error>> {
     flexi_logger::Logger::with_env_or_str("chb4=trace, debug")
         .format(chb4::format)
         .start()
-        .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
+        .context(InitLogger)?;
 
     let version = env!("CARGO_PKG_VERSION");
     let git_hash = env!("GIT_HASH");
@@ -43,28 +67,34 @@ async fn main() {
 
     let mut config = Config::new();
     config
+        // look for config in system config directory
         .merge(
-            // look for config in system config directory
             File::with_name("/etc/chb4/config")
                 .format(FileFormat::Toml)
                 .required(false),
         )
-        .unwrap_or_else(|e| panic!("Loading config from /etc/chb4 failed with {}", e))
+        .context(LoadConfig {
+            target: "/etc/chb4",
+        })?
+        // look for config in working directory
         .merge(
-            // look for config in working directory
             File::with_name("config")
                 .format(FileFormat::Toml)
                 .required(false),
         )
-        .unwrap_or_else(|e| panic!("Loading config from current directory failed with {}", e))
+        .context(LoadConfig {
+            target: "current directory",
+        })?
         // look for config in environment
         .merge(Environment::with_prefix("CHB4").separator("_"))
-        .unwrap_or_else(|e| panic!("Loading config from env failed with {}", e));
+        .context(LoadConfig {
+            target: "environment",
+        })?;
+
     info!("Loaded config");
 
-    let manager =
-        r2d2::ConnectionManager::<PgConnection>::new(config.get_str("database.url").unwrap());
-    let pool = r2d2::Pool::builder().build(manager).unwrap();
+    let manager = ConnectionManager::new(config.get_str("database.url").context(GetConfigEntry)?);
+    let pool = Pool::builder().build(manager).context(BuildR2D2Pool)?;
     debug!("Created Database Pool");
 
     let mut context = BotContext::new(config, pool);
@@ -98,7 +128,7 @@ async fn main() {
         // ensure the bot channel is in the database
         let _ = Channel::join(conn, &bot_channel); // ignore result
 
-        Channel::all_enabled(conn).unwrap()
+        Channel::all_enabled(conn).context(GetEnabledChannels)?
     };
 
     debug!("Found {} channels to join", channels.len());
@@ -138,17 +168,7 @@ async fn main() {
         BotContext::run_scheduler(context.clone()),
     );
 
-    debug!("Features resolved {:?}", twitchbot_result);
+    debug!("Futures resolved {:?}", twitchbot_result);
 
-    //match twitchbot_result {
-    //    Ok(Status::Eof) => {
-    //        info!("TwitchBot got a EOF");
-    //    }
-    //    Ok(Status::Canceled) => {
-    //        info!("TwitchBot was stopped by user");
-    //    }
-    //    Err(e) => {
-    //        error!("Error connecting TwitchBot: {}", e);
-    //    }
-    //}
+    Ok(())
 }
