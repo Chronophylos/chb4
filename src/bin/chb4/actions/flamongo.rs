@@ -14,6 +14,7 @@ lazy_static! {
         "WehrabooFlamingo",
         "RingoDerDrogenFlamingo",
         "RingoDingoBingo",
+        "RingoDrugFlamingo",
     ];
 }
 

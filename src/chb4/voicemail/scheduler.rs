@@ -40,9 +40,6 @@ pub enum Error {
     #[snafu(display("Disabling voicemail: {}", source))]
     DisableVoicemail { source: database::voicemail::Error },
 
-    #[snafu(display("Getting twitchbot writer: {}", source))]
-    GetWriter { source: crate::twitchbot::Error },
-
     #[snafu(display("Sending privmsg (channel: {}): {}", channel, source))]
     SendPrivmsg {
         source: twitchchat::Error,
@@ -111,11 +108,7 @@ impl Scheduler {
 
         context
             .twitchbot()
-            .read()
-            .unwrap() // I can't handle this with snafu since the error uses a lifetime
-            .clone()
             .writer()
-            .context(GetWriter)?
             .privmsg(
                 &channel_name,
                 &format!(

@@ -2,7 +2,7 @@ use crate::{handler::Twitch, manpages, twitchbot, voicemail::Scheduler, TwitchBo
 use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use std::{
-    sync::{Arc, RwLock},
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -19,7 +19,7 @@ pub struct BotContext {
     pool: Pool,
 
     // bot for twitch
-    twitchbot: Arc<RwLock<TwitchBot>>,
+    twitchbot: TwitchBot,
 
     // voicemail scheduler
     scheduler: Arc<Scheduler>,
@@ -32,11 +32,11 @@ pub struct BotContext {
 }
 
 impl BotContext {
-    pub fn new(config: Config, pool: Pool) -> Arc<Self> {
+    pub fn new(config: Config, pool: Pool, twitchbot: TwitchBot) -> Arc<Self> {
         Arc::new(Self {
             config,
             pool,
-            twitchbot: Arc::new(RwLock::new(TwitchBot::new())),
+            twitchbot,
             scheduler: Arc::new(Scheduler::new()),
             manpage_index: Arc::new(manpages::Index::new()),
             clock: Instant::now(),
@@ -64,7 +64,7 @@ impl BotContext {
         self.config.get_str("twitch.name").unwrap()
     }
 
-    pub fn twitchbot(&self) -> Arc<RwLock<TwitchBot>> {
+    pub fn twitchbot(&self) -> TwitchBot {
         self.twitchbot.clone()
     }
 
@@ -74,21 +74,6 @@ impl BotContext {
 
     pub async fn run_scheduler(this: Arc<Self>) {
         this.scheduler.run(this.clone()).await.unwrap()
-    }
-
-    pub async fn connect_twitchbot(
-        this: Arc<Self>,
-        handlers: &[Arc<dyn Twitch>],
-        initial_channels: Vec<String>,
-    ) -> Result<(), twitchbot::Error> {
-        let name = this.config.get_str("twitch.name").unwrap();
-        let token = this.config.get_str("twitch.token").unwrap();
-
-        this.twitchbot()
-            .write()
-            .unwrap()
-            .start(this, name, token, handlers, initial_channels)
-            .await
     }
 
     pub fn whatis(

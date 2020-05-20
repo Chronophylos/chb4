@@ -21,7 +21,7 @@ use chb4::{
     context::BotContext,
     database::{self, Channel, Voicemail},
     handler::Twitch,
-    manpages,
+    manpages, TwitchBot,
 };
 
 use config::{Config, Environment, File, FileFormat};
@@ -55,7 +55,7 @@ pub enum Error {
 /// The main is currently full of bloat. The plan is to move everything into their own module
 #[tokio::main]
 async fn main() -> Result<(), Box<Error>> {
-    flexi_logger::Logger::with_env_or_str("chb4=trace, debug")
+    flexi_logger::Logger::with_env_or_str("chb4=trace, rustls=info, debug")
         .format(chb4::format)
         .start()
         .context(InitLogger)?;
@@ -97,7 +97,9 @@ async fn main() -> Result<(), Box<Error>> {
     let pool = Pool::builder().build(manager).context(BuildR2D2Pool)?;
     debug!("Created Database Pool");
 
-    let mut context = BotContext::new(config, pool);
+    let (twitchbot, runner) = TwitchBot::new();
+
+    let mut context = BotContext::new(config, pool, twitchbot);
     debug!("Created Bot Context");
 
     let action_index = actions::all(context.clone());
@@ -159,16 +161,28 @@ async fn main() -> Result<(), Box<Error>> {
         });
     }
 
+    let name = context.config().get_str("twitch.name").unwrap();
+    let token = context.config().get_str("twitch.token").unwrap();
+
+    let twitchbot = context.twitchbot();
     // await for the client to be done
     debug!("Waiting for futures to resolve");
-    let (twitchbot_result, _) = tokio::join!(
-        // twitchbot
-        BotContext::connect_twitchbot(context.clone(), &twitch_handlers, channels),
+    let (scheduler_result, twitchbot_result) = tokio::join!(
         // scheduler
         BotContext::run_scheduler(context.clone()),
+        // twitchbot
+        twitchbot.start(
+            runner,
+            context.clone(),
+            name,
+            token,
+            Arc::new(twitch_handlers),
+            channels
+        ),
     );
 
     debug!("Futures resolved {:?}", twitchbot_result);
+    debug!("Futures resolved {:?}", scheduler_result);
 
     Ok(())
 }
