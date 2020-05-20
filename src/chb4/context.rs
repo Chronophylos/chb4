@@ -82,7 +82,7 @@ impl BotContext {
         chapter: Option<manpages::ChapterName>,
         name: String,
     ) -> Option<Arc<manpages::Manpage>> {
-        dbg!(self.manpage_index.whatis(chapter, name))
+        self.manpage_index.whatis(chapter, name)
     }
 
     /// Get the duration how long ago this context was created
