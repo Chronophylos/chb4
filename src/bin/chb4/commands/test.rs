@@ -10,6 +10,7 @@ pub fn command() -> Arc<Command> {
                 MessageResult::Message(String::from("Testing ") + &args[0])
             })
         })
+        .about("Test everything!")
         .description(
             "A Command to test the bot.
 

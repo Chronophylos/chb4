@@ -37,6 +37,7 @@ pub fn command() -> Arc<Command> {
                 Err(e) => MessageResult::Message(format!("Error: {}", e)),
             })
         })
+        .about("Do some math")
         .description(
             "do math.
 

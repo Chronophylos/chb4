@@ -26,6 +26,7 @@ pub fn command() -> Arc<Command> {
                 None => Ok(MessageResult::Message(String::from("Missing sub-command"))),
             },
         )
+        .about("Show or manage quotes")
         .description(
             "Show or add a quote.
 

@@ -83,7 +83,7 @@ impl fmt::Debug for Action {
 impl ManpageProducer for Action {
     fn get_manpage(&self) -> Manpage {
         let characteristics = vec![
-            (String::from("chainable"), String::from("no")),
+            (String::from("chainable"), prettify_bool(false).to_owned()),
             (
                 String::from("whitelisted"),
                 prettify_bool(self.whitelisted).to_owned(),

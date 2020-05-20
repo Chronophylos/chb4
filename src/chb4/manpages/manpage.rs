@@ -24,7 +24,7 @@ pub trait ManpageProducer {
 pub struct Manpage {
     names: Vec<String>,
     pub chapter: ChapterName,
-    name: String,
+    about: String,
     description: String,
     example: Option<String>,
     characteristics: Vec<(String, String)>,
@@ -34,7 +34,7 @@ impl Manpage {
     pub fn new(
         names: Vec<String>,
         chapter: ChapterName,
-        name: String,
+        about: String,
         description: String,
         example: Option<String>,
         characteristics: Vec<(String, String)>,
@@ -42,7 +42,7 @@ impl Manpage {
         Self {
             names,
             chapter,
-            name,
+            about,
             description,
             example,
             characteristics,
@@ -55,6 +55,10 @@ impl Manpage {
 
     pub fn other_names(&self) -> Vec<String> {
         self.names[1..].to_vec()
+    }
+
+    pub fn short(&self) -> String {
+        format!("{} - {}", self.names.join(", "), self.about)
     }
 
     fn render_title(&self) -> Result<String> {
@@ -77,7 +81,7 @@ impl Manpage {
             "== NAME
 
 {}",
-            self.name
+            self.about
         )
     }
 
@@ -89,16 +93,14 @@ impl Manpage {
         let characterisitics: Vec<String> = self
             .characteristics
             .iter()
-            .map(|t| format!("| {}\n| {}", t.0, t.1))
+            .map(|t| format!("pass:normal[{}] {}", t.1, t.0))
             .collect();
 
         format!(
             "== CHARACTERISTICS
 
-|===
-{}
-|===",
-            characterisitics.join("\n")
+{}",
+            characterisitics.join("\n\n")
         )
     }
 
@@ -152,6 +154,6 @@ impl fmt::Display for Manpage {
         if self.names.len() > 1 {
             write!(f, " ({})", self.other_names().join(", "))?;
         }
-        write!(f, " {}", self.name)
+        write!(f, " {}", self.about)
     }
 }

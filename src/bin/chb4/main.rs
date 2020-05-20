@@ -110,8 +110,6 @@ async fn main() -> Result<(), Box<Error>> {
         manpage_index.page_count()
     );
 
-    dbg!(&manpage_index);
-
     let context = BotContext::new(config, pool, twitchbot, manpage_index);
     debug!("Created Bot Context");
 

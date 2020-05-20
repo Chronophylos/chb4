@@ -69,6 +69,7 @@ pub fn command() -> Arc<Command> {
                 Err(e) => Err(MessageError::from(e.to_string())),
             }
         })
+        .about("Send messages, now or later, to other users or yourself")
         .description(
             "send other users a message.
 

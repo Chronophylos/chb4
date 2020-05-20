@@ -21,5 +21,6 @@ pub fn command() -> Arc<Command> {
                 vec![format!("{}", now - ts), format!("{}", elapsed.as_millis())],
             ))
         })
+        .about("Get system information about the bot")
         .done()
 }

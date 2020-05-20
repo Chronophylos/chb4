@@ -7,6 +7,7 @@ pub fn command() -> Arc<Command> {
             let color = msg.color();
             Ok(MessageResult::ReplyWithValues(color.clone(), vec![color]))
         })
+        .about("print your current chat color")
         .description("Prints your chat color")
         .done()
 }

@@ -21,6 +21,7 @@ pub fn command() -> Arc<Command> {
                 None => Ok(MessageResult::Message(String::from("Missing sub-command"))),
             }
         })
+        .about("Various commands to manage the bot.")
         .description(
             "has various sub commands to do admin stuff.
 

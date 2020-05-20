@@ -2,6 +2,7 @@ use super::prelude::*;
 
 pub fn command() -> Arc<Command> {
     Command::with_name("man")
+        .aliases(vec!["help", "whatis", "hilbe"])
         .command(move |context, args, _msg, _user| {
             if args.is_empty() {
                 return Err(MessageError::from("Not enough arguments"));
@@ -15,9 +16,10 @@ pub fn command() -> Arc<Command> {
             let chapter = chapter.cloned().map(|c| c.into());
 
             match context.whatis(chapter, name.to_owned()) {
-                Some(m) => Ok(MessageResult::Message(m.to_string())),
+                Some(m) => Ok(MessageResult::Message(m.short())),
                 None => Ok(MessageResult::Message(String::from("No page found"))),
             }
         })
+        .about("Get help about a command")
         .done()
 }

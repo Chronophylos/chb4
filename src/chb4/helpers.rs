@@ -67,8 +67,8 @@ pub fn truncate_duration(dur: Duration) -> Duration {
 
 pub fn prettify_bool(b: bool) -> &'static str {
     if b {
-        "yes"
+        "✔"
     } else {
-        "no"
+        "✘"
     }
 }
