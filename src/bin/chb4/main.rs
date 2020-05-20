@@ -99,18 +99,21 @@ async fn main() -> Result<(), Box<Error>> {
 
     let (twitchbot, runner) = TwitchBot::new();
 
-    let mut context = BotContext::new(config, pool, twitchbot);
-    debug!("Created Bot Context");
-
-    let action_index = actions::all(context.clone());
-    let command_index = commands::all(context.clone());
+    let action_index = actions::all();
+    let command_index = commands::all();
 
     let mut manpage_index = manpages::Index::new();
     manpage_index.populate(action_index.clone());
     manpage_index.populate(command_index.clone());
-    debug!("Created and populated Manpages");
+    debug!(
+        "Created and populated Manpages (count: {})",
+        manpage_index.page_count()
+    );
 
-    Arc::make_mut(&mut context).set_manpage_index(Arc::new(manpage_index));
+    dbg!(&manpage_index);
+
+    let context = BotContext::new(config, pool, twitchbot, manpage_index);
+    debug!("Created Bot Context");
 
     let action_handler = ActionHandler::new(context.clone(), action_index);
     debug!("Created Action Handler");

@@ -1,4 +1,4 @@
-use chb4::{commands::command::Command, context::BotContext};
+use chb4::commands::command::Command;
 use std::sync::Arc;
 
 mod prelude;
@@ -12,15 +12,15 @@ mod quote;
 mod test;
 mod voicemail;
 
-pub fn all(context: Arc<BotContext>) -> Vec<Arc<Command>> {
+pub fn all() -> Vec<Arc<Command>> {
     vec![
-        admin::command(context.clone()),
+        admin::command(),
         color::command(),
-        man::command(context.clone()),
+        man::command(),
         math::command(),
-        ping::command(context.clone()),
-        quote::command(context.clone()),
+        ping::command(),
+        quote::command(),
         test::command(),
-        voicemail::command(context),
+        voicemail::command(),
     ]
 }

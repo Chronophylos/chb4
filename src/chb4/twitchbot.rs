@@ -28,9 +28,8 @@ pub enum Error {
     #[snafu(display("Running runner: {}", source))]
     RunRunner { source: twitchchat::Error },
 
-    #[snafu(display("Reconnecting to server: {}", source))]
-    Reconnect { source: twitchchat::Error },
-
+    //#[snafu(display("Reconnecting to server: {}", source))]
+    //Reconnect { source: twitchchat::Error },
     #[snafu(display("Joining channel (name: {}): {}", channel, source))]
     JoinChannel {
         source: twitchchat::Error,
@@ -51,9 +50,6 @@ pub enum Error {
 
     #[snafu(display("Bumping user: {}", source))]
     BumpUser { source: database::user::Error },
-
-    #[snafu(display("Name is not set"))]
-    GetName,
 
     #[snafu(display("Could not get user id from message"))]
     GetUserID,

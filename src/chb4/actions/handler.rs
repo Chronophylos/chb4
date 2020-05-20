@@ -42,7 +42,12 @@ impl Twitch for ActionHandler {
             if !action.whitelisted() {
                 // or the action is enabled in this channel
                 trace!("Executing action");
-                match action.consume(Vec::new(), Message::TwitchPrivmsg(msg.clone()), user) {
+                match action.consume(
+                    self.context.clone(),
+                    Vec::new(),
+                    Message::TwitchPrivmsg(msg.clone()),
+                    user,
+                ) {
                     Ok(r) => match r {
                         MessageResult::None => {}
                         MessageResult::Message(m) => writer

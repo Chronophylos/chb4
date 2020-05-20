@@ -77,7 +77,12 @@ impl Twitch for CommandHandler {
                     let mut writer = self.context.twitchbot().writer();
 
                     trace!("Executing command");
-                    match cmd.consume(args.to_vec(), Message::TwitchPrivmsg(msg.clone()), user) {
+                    match cmd.consume(
+                        self.context.clone(),
+                        args.to_vec(),
+                        Message::TwitchPrivmsg(msg.clone()),
+                        user,
+                    ) {
                         Ok(r) => match r {
                             MessageResult::None => {}
                             MessageResult::Message(m) => {

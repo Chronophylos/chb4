@@ -12,7 +12,7 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Index {
     chapters: HashMap<ChapterName, Chapter>,
 }
@@ -40,11 +40,20 @@ impl Index {
     pub fn whatis(&self, chapter: Option<ChapterName>, name: String) -> Option<Arc<Manpage>> {
         match chapter {
             Some(c) => match self.chapters.get(&c) {
-                Some(c) => c.get(name),
+                Some(c) => c.get_page(name),
                 None => None,
             },
-            None => self.chapters.iter().find_map(|(_, c)| c.get(name.clone())),
+            None => self
+                .chapters
+                .iter()
+                .find_map(|(_, c)| c.get_page(name.clone())),
         }
+    }
+
+    pub fn page_count(&self) -> usize {
+        self.chapters
+            .values()
+            .fold(0, |acc, x| acc + x.page_count())
     }
 
     pub fn render_toc(&self) -> String {

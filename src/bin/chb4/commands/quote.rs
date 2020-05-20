@@ -11,11 +11,11 @@ lazy_static! {
     };
 }
 
-pub fn command(context: Arc<BotContext>) -> Arc<Command> {
+pub fn command() -> Arc<Command> {
     Command::with_name("quote")
         .alias("quotes")
         .command(
-            move |args, msg, user| match args.get(0).map(String::as_str) {
+            move |context, args, msg, user| match args.get(0).map(String::as_str) {
                 Some("add") => add(context.clone(), msg, user, args[1..].to_vec()),
                 Some("remove") | Some("delete") => {
                     remove(context.clone(), msg, user, args.get(1).map(String::as_str))

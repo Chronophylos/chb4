@@ -1,4 +1,4 @@
-use crate::{handler::Twitch, manpages, twitchbot, voicemail::Scheduler, TwitchBot};
+use crate::{manpages, voicemail::Scheduler, TwitchBot};
 use config::Config;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use std::{
@@ -32,20 +32,21 @@ pub struct BotContext {
 }
 
 impl BotContext {
-    pub fn new(config: Config, pool: Pool, twitchbot: TwitchBot) -> Arc<Self> {
+    pub fn new(
+        config: Config,
+        pool: Pool,
+        twitchbot: TwitchBot,
+        manpage_index: manpages::Index,
+    ) -> Arc<Self> {
         Arc::new(Self {
             config,
             pool,
             twitchbot,
             scheduler: Arc::new(Scheduler::new()),
-            manpage_index: Arc::new(manpages::Index::new()),
+            manpage_index: Arc::new(manpage_index),
             clock: Instant::now(),
             version: env!("CARGO_PKG_VERSION"),
         })
-    }
-
-    pub fn set_manpage_index(&mut self, index: Arc<manpages::Index>) {
-        self.manpage_index = index;
     }
 
     pub fn pool(&self) -> &Pool {
@@ -81,7 +82,7 @@ impl BotContext {
         chapter: Option<manpages::ChapterName>,
         name: String,
     ) -> Option<Arc<manpages::Manpage>> {
-        self.manpage_index.whatis(chapter, name)
+        dbg!(self.manpage_index.whatis(chapter, name))
     }
 
     /// Get the duration how long ago this context was created

@@ -1,8 +1,8 @@
 use super::prelude::*;
 
-pub fn command(context: Arc<BotContext>) -> Arc<Command> {
+pub fn command() -> Arc<Command> {
     Command::with_name("man")
-        .command(move |args, _msg, _user| {
+        .command(move |context, args, _msg, _user| {
             if args.is_empty() {
                 return Err(MessageError::from("Not enough arguments"));
             }

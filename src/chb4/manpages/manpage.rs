@@ -20,6 +20,7 @@ pub trait ManpageProducer {
     fn get_manpage(&self) -> Manpage;
 }
 
+#[derive(Debug)]
 pub struct Manpage {
     names: Vec<String>,
     pub chapter: ChapterName,

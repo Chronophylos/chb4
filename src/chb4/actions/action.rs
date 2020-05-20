@@ -1,4 +1,5 @@
 use crate::{
+    context::BotContext,
     database::User,
     helpers::prettify_bool,
     manpages::{ChapterName, Manpage, ManpageProducer},
@@ -7,11 +8,12 @@ use crate::{
 use regex::Regex;
 use std::{fmt, sync::Arc};
 
-pub type ActionFunction = Box<dyn Fn(Message, &User) -> Result + Send + Sync + 'static>;
+pub type ActionFunction =
+    Box<dyn Fn(Arc<BotContext>, Message, &User) -> Result + Send + Sync + 'static>;
 
 // I want trait aliases PepeHands
-// pub type ActionFunctionImpl =
-//     impl Fn(Message, &User) -> Result + Send + Sync + 'static;
+//pub type ActionFunctionImpl =
+//    impl Fn(Arc<BotContext>, Message, &User) -> Result + Send + Sync + 'static;
 
 pub struct Action {
     name: &'static str,
@@ -53,9 +55,15 @@ impl MessageConsumer for Action {
         self.whitelisted
     }
 
-    fn consume(&self, _args: Vec<String>, msg: Message, user: &User) -> Result {
+    fn consume(
+        &self,
+        context: Arc<BotContext>,
+        _args: Vec<String>,
+        msg: Message,
+        user: &User,
+    ) -> Result {
         info!("Executing action {}", self.name);
-        (self.command)(msg, &user)
+        (self.command)(context, msg, &user)
     }
 }
 
@@ -164,7 +172,10 @@ impl ActionBuilder {
         self
     }
 
-    pub fn command(mut self, f: impl Fn(Message, &User) -> Result + Send + Sync + 'static) -> Self {
+    pub fn command(
+        mut self,
+        f: impl Fn(Arc<BotContext>, Message, &User) -> Result + Send + Sync + 'static,
+    ) -> Self {
         self.command = Some(Box::new(f));
         self
     }

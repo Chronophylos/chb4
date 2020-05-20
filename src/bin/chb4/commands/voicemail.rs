@@ -7,10 +7,10 @@ lazy_static! {
     static ref SEPERATORS: Vec<&'static str> = vec!["&&", "and", "und"];
 }
 
-pub fn command(context: Arc<BotContext>) -> Arc<Command> {
+pub fn command() -> Arc<Command> {
     Command::with_name("voicemail")
         .alias("tell")
-        .command(move |args, msg, _user| {
+        .command(move |context,args, msg, _user| {
             let user_id = msg.twitch_id().unwrap();
             let line = args.join(" ");
             let mut voicemail: Voicemail = match line.parse() {

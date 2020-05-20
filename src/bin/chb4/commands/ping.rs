@@ -3,10 +3,10 @@ use chrono::prelude::*;
 use humantime::format_duration;
 use std::time::Duration;
 
-pub fn command(context: Arc<BotContext>) -> Arc<Command> {
+pub fn command() -> Arc<Command> {
     Command::with_name("ping")
         .chainable()
-        .command(move |_args, msg, _user| {
+        .command(move |context, _args, msg, _user| {
             let now = Utc::now().timestamp_millis() as u64;
             let ts = msg.sent_ts();
             let latency = Duration::from_millis(now - ts);

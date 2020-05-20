@@ -5,7 +5,7 @@ use std::f64::consts;
 pub fn command() -> Arc<Command> {
     Command::with_name("math")
         .alias("quickmafs")
-        .command(move |args, _msg, _user| {
+        .command(move |_context, args, _msg, _user| {
             let context = context_map! {
                 "e" => consts::E,
                 "pi" => consts::PI,

@@ -1,4 +1,4 @@
-use crate::database::User;
+use crate::{context::BotContext, database::User};
 use std::sync::Arc;
 use twitchchat::messages::Privmsg;
 
@@ -6,7 +6,13 @@ pub trait MessageConsumer: Send + Sync {
     fn name(&self) -> &str;
     fn whitelisted(&self) -> bool;
 
-    fn consume(&self, args: Vec<String>, msg: Message, user: &User) -> Result;
+    fn consume(
+        &self,
+        context: Arc<BotContext>,
+        args: Vec<String>,
+        msg: Message,
+        user: &User,
+    ) -> Result;
 }
 
 pub enum Message<'a> {

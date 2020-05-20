@@ -1,4 +1,5 @@
 use crate::{
+    context::BotContext,
     database::User,
     helpers::prettify_bool,
     manpages::{ChapterName, Manpage, ManpageProducer},
@@ -7,7 +8,7 @@ use crate::{
 use std::{fmt, sync::Arc};
 
 pub type CommandFunction =
-    Box<dyn Fn(Vec<String>, Message, &User) -> Result + Send + Sync + 'static>;
+    Box<dyn Fn(Arc<BotContext>, Vec<String>, Message, &User) -> Result + Send + Sync + 'static>;
 
 // I want trait aliases PepeHands
 // pub type CommandFunctionImpl =
@@ -51,9 +52,15 @@ impl MessageConsumer for Command {
         self.whitelisted
     }
 
-    fn consume(&self, args: Vec<String>, msg: Message, user: &User) -> Result {
+    fn consume(
+        &self,
+        context: Arc<BotContext>,
+        args: Vec<String>,
+        msg: Message,
+        user: &User,
+    ) -> Result {
         info!("Executing command {} with args {:?}", self.name, args);
-        (self.command)(args, msg, &user)
+        (self.command)(context, args, msg, &user)
     }
 }
 
@@ -197,7 +204,7 @@ impl CommandBuilder {
 
     pub fn command(
         mut self,
-        f: impl Fn(Vec<String>, Message, &User) -> Result + Send + Sync + 'static,
+        f: impl Fn(Arc<BotContext>, Vec<String>, Message, &User) -> Result + Send + Sync + 'static,
     ) -> Self {
         self.command = Some(Box::new(f));
         self

@@ -49,7 +49,7 @@ pub fn command() -> Arc<Command> {
     }
 
     Command::with_name("font")
-        .command(|args, msg| match args.get(0) {
+        .command(move |_context, args, msg| match args.get(0) {
             Some(name) => font(name),
             None => total(),
         })

@@ -3,7 +3,7 @@ use super::prelude::*;
 pub fn command() -> Arc<Command> {
     Command::with_name("test")
         .aliases(vec!["tset", "tets"])
-        .command(|args, _msg, _user| {
+        .command(|_context, args, _msg, _user| {
             Ok(if args.is_empty() {
                 MessageResult::Message(String::from("Test what?"))
             } else {

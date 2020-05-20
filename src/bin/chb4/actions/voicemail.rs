@@ -1,9 +1,9 @@
 use super::prelude::*;
 use chb4::database::Voicemail;
 
-pub fn action(context: Arc<BotContext>) -> Arc<Action> {
+pub fn action() -> Arc<Action> {
     Action::with_name("voicemail")
-        .command(move |_msg, user| {
+        .command(move |context, _msg, user| {
             let conn = &context.conn();
 
             let voicemails = match user.pop(conn) {

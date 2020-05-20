@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub enum ChapterName {
     Action,
     Command,
@@ -36,7 +36,7 @@ impl From<String> for ChapterName {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Chapter {
     pages: HashMap<String, Arc<Manpage>>,
     aliases: HashMap<String, String>,
@@ -61,12 +61,16 @@ impl Chapter {
         self.pages.insert(name, page);
     }
 
-    pub fn get(&self, name: String) -> Option<Arc<Manpage>> {
+    pub fn get_page(&self, name: String) -> Option<Arc<Manpage>> {
         let name = self.aliases.get(&name).unwrap_or_else(|| &name);
         self.pages.get(name).cloned()
     }
 
     pub fn page_iter(&self) -> Values<String, Arc<Manpage>> {
         self.pages.values()
+    }
+
+    pub fn page_count(&self) -> usize {
+        self.pages.values().count()
     }
 }
