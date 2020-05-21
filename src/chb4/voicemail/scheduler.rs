@@ -6,7 +6,6 @@ use chrono::prelude::*;
 use futures_delay_queue::{delay_queue, DelayQueue, Receiver};
 use snafu::{OptionExt, ResultExt, Snafu};
 use std::sync::Arc;
-use time;
 
 #[derive(Debug, Snafu)]
 pub enum Error {

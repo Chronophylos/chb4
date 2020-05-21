@@ -208,7 +208,10 @@ impl TwitchBot {
         };
 
         for handler in handlers.iter() {
-            trace!("Letting handler handle Message");
+            trace!(
+                "Letting handler handle Message (handler: {})",
+                handler.name()
+            );
             handler.handle(Arc::new(msg.clone()), &user).await;
         }
 

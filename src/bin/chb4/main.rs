@@ -1,14 +1,5 @@
-extern crate chrono;
-extern crate config;
-extern crate evalexpr;
-extern crate humantime;
-extern crate hyper;
 #[macro_use]
 extern crate log;
-extern crate bytes;
-extern crate futures_util;
-extern crate regex;
-extern crate serde;
 #[macro_use]
 extern crate lazy_static;
 

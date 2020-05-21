@@ -1,5 +1,5 @@
 use humantime::format_duration;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub struct Stopwatch<F>
 where
@@ -18,6 +18,10 @@ where
             instant: Instant::now(),
             callback,
         }
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        self.instant.elapsed()
     }
 }
 

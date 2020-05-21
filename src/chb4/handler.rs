@@ -11,6 +11,10 @@ where
 }
 
 #[async_trait]
-pub trait Twitch: Send + Sync {
+pub trait Twitch: SimpleHandler + Send + Sync {
     async fn handle(&self, msg: Arc<Privmsg<'_>>, user: &User);
+}
+
+pub trait SimpleHandler {
+    fn name(&self) -> &str;
 }

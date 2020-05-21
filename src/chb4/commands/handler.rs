@@ -3,7 +3,7 @@ use super::command::Command;
 use crate::{
     context::BotContext,
     database::User,
-    handler::{Handler, Twitch},
+    handler::{Handler, SimpleHandler, Twitch},
     message::{Message, MessageConsumer, MessageResult},
 };
 use async_trait::async_trait;
@@ -41,6 +41,12 @@ impl CommandHandler {
             aliases,
             prefix: '§',
         }
+    }
+}
+
+impl SimpleHandler for CommandHandler {
+    fn name(&self) -> &str {
+        "command"
     }
 }
 

@@ -2,7 +2,7 @@ use super::action::Action;
 use crate::{
     context::BotContext,
     database::User,
-    handler::{Handler, Twitch},
+    handler::{Handler, SimpleHandler, Twitch},
     message::{Message, MessageConsumer, MessageResult},
 };
 use async_trait::async_trait;
@@ -25,6 +25,12 @@ impl ActionHandler {
 impl Handler<Action> for ActionHandler {
     fn get(&self, name: String) -> Option<Arc<Action>> {
         self.actions.iter().find(|&a| a.name() == name).cloned()
+    }
+}
+
+impl SimpleHandler for ActionHandler {
+    fn name(&self) -> &str {
+        "action"
     }
 }
 
