@@ -1,4 +1,4 @@
-use chb4::actions::action::Action;
+use crate::actions::action::Action;
 use std::sync::Arc;
 
 mod prelude;

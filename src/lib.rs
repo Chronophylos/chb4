@@ -2,12 +2,8 @@
 extern crate diesel;
 #[macro_use]
 extern crate log;
-extern crate futures_delay_queue;
-extern crate futures_executor;
-extern crate humantime;
-extern crate nom;
-extern crate r2d2;
-extern crate time;
+#[macro_use]
+extern crate lazy_static;
 
 pub mod actions;
 pub mod commands;

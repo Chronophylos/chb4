@@ -1,4 +1,4 @@
-pub use chb4::{
+pub use crate::{
     commands::command::Command,
     context::BotContext,
     database,

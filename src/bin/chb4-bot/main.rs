@@ -1,20 +1,15 @@
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate lazy_static;
-
-mod actions;
-mod commands;
 
 use chb4::{
-    actions::ActionHandler,
-    commands::CommandHandler,
+    actions::{ActionHandler, self},
+    commands::{CommandHandler, self},
     context::BotContext,
     database::{self, Channel, Voicemail},
     handler::Twitch,
     manpages, TwitchBot,
 };
-
+use flexi_logger::Logger;
 use config::{Config, Environment, File, FileFormat};
 use diesel::r2d2::{ConnectionManager, Pool};
 use snafu::{ResultExt, Snafu};
@@ -45,9 +40,9 @@ pub enum Error {
 
 /// The main is currently full of bloat. The plan is to move everything into their own modules
 #[tokio::main]
-async fn main() -> Result<(), Box<Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create logger with custom format (`chb4::format`)
-    flexi_logger::Logger::with_env_or_str("chb4=trace, rustls=info, debug")
+    Logger::with_env_or_str("chb4=trace, rustls=info, debug")
         .format(chb4::format)
         .start()
         .context(InitLogger)?;

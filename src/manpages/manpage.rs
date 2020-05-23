@@ -142,6 +142,10 @@ impl Manpage {
     where
         P: AsRef<Path>,
     {
+        let path = path.as_ref();
+
+        debug!("Writing {} to {}", self, path.display());
+
         let mut f = File::create(path).context(CreateFile)?;
 
         f.write_all(self.render()?.as_bytes()).context(WriteFile)
@@ -150,10 +154,6 @@ impl Manpage {
 
 impl fmt::Display for Manpage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())?;
-        if self.names.len() > 1 {
-            write!(f, " ({})", self.other_names().join(", "))?;
-        }
-        write!(f, " {}", self.about)
+        write!(f, "{} ({})", self.name(), self.chapter)
     }
 }

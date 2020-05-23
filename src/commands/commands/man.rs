@@ -32,7 +32,7 @@ USAGE: man [CHAPTER] PAGE
 ")
 .example("
 < man action voicemail
-> voicemail - redeems voicemails created with tell https://chb4.chronophylos.com/action/voicemail
+> voicemail - redeems voicemails created with tell https://crate.chronophylos.com/action/voicemail
 ")
         .done()
 }

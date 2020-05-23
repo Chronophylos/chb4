@@ -1,4 +1,4 @@
-pub use chb4::{
+pub use crate::{
     actions::action::Action,
     context::BotContext,
     database,

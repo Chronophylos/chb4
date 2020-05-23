@@ -1,7 +1,7 @@
 use super::prelude::*;
 
-use chb4::database::{Quote, User};
-use chb4::helpers::Permission;
+use crate::database::{Quote, User};
+use crate::helpers::Permission;
 use regex::Regex;
 
 lazy_static! {

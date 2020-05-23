@@ -1,5 +1,5 @@
 use super::prelude::*;
-use chb4::database::Channel;
+use crate::database::Channel;
 
 use futures_executor::block_on;
 

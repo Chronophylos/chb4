@@ -3,20 +3,12 @@ name    = "chb4"
 version = "0.1.0"
 authors = ["Chronophylos <nikolai@chronophylos.com>"]
 edition = "2018"
+default-run = "chb4-bot"
 
 [profile.release]
 lto = true
 opt-level = 'z'  # Optimize for size.
 panic = 'abort' # abort on panic instead of unwinding
-
-[lib]
-name = "chb4"
-path = "src/chb4/lib.rs"
-
-[[bin]]
-name = "chb4"
-doc = false
-test = false
 
 [dependencies]
 async-trait         = "0.1"

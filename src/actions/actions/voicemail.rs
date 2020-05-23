@@ -1,5 +1,5 @@
 use super::prelude::*;
-use chb4::database::Voicemail;
+use crate::database::Voicemail;
 
 pub fn action() -> Arc<Action> {
     Action::with_name("voicemail")

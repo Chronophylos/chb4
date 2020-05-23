@@ -1,4 +1,4 @@
-use chb4::commands::command::Command;
+use crate::commands::command::Command;
 use std::sync::Arc;
 
 mod prelude;

@@ -1,5 +1,5 @@
 use super::prelude::*;
-use chb4::voicemail::Voicemail;
+use crate::voicemail::Voicemail;
 use chrono::prelude::*;
 use humantime::format_duration;
 
