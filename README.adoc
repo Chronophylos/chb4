@@ -1,6 +1,6 @@
 = ChronophylosBot Version 4
 Chronophylos
-v1.0, 2020-02-13
+v1.1, 2020-05-23
 
 image:https://github.com/Chronophylos/chb4/workflows/Test/badge.svg[Tests]
 image:https://github.com/Chronophylos/chb4/workflows/Clippy/badge.svg[Clippy]
@@ -33,10 +33,7 @@ and more that I didn't write here, yet
 
 == License
 
-// CHB4 is licensed under the link:LICENSE[MIT License]
-
-This project is currently unlicensed. This means you may look at the code but
-neither use, edit, copy, distribute or sell it.
+CHB4 is licensed under the link:LICENSE[MIT License]
 
 // == Contributing
 //
