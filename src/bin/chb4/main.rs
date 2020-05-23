@@ -43,19 +43,23 @@ pub enum Error {
     GetEnabledChannels { source: database::channel::Error },
 }
 
-/// The main is currently full of bloat. The plan is to move everything into their own module
+/// The main is currently full of bloat. The plan is to move everything into their own modules
 #[tokio::main]
 async fn main() -> Result<(), Box<Error>> {
+    // Create logger with custom format (`chb4::format`)
     flexi_logger::Logger::with_env_or_str("chb4=trace, rustls=info, debug")
         .format(chb4::format)
         .start()
         .context(InitLogger)?;
 
+    // Get crate version and git hash from environment.
+    // Both env vars are set in `build.rs`.
     let version = env!("CARGO_PKG_VERSION");
     let git_hash = env!("GIT_HASH");
 
     info!("Starting CHB4 {} ({})", version, git_hash);
 
+    // Load config
     let mut config = Config::new();
     config
         // look for config in system config directory
@@ -153,10 +157,12 @@ async fn main() -> Result<(), Box<Error>> {
         });
     }
 
+    // get credentials from config
     let name = context.config().get_str("twitch.name").unwrap();
     let token = context.config().get_str("twitch.token").unwrap();
 
     let twitchbot = context.twitchbot();
+
     // await for the client to be done
     debug!("Waiting for futures to resolve");
     let (scheduler_result, twitchbot_result) = tokio::join!(
