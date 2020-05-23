@@ -171,7 +171,7 @@ impl TwitchBot {
         msg: &messages::Privmsg<'_>,
     ) -> Result<()> {
         // this variable name should not be changed.
-        // having no name or _  as name just drops the Stopwatch instantly.
+        // having no name or `_` as name just drops the Stopwatch instantly.
         // and having no _ infront annoys the compiler
         let _stopwatch = Stopwatch::new(|d| {
             debug!("Handling PRIVMSG took: {}", d);

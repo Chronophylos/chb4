@@ -39,10 +39,37 @@ pub fn command() -> Arc<Command> {
         })
         .about("Do some math")
         .description(
-            "do math.
+            "
+This command uses the `evalexpr` crate. This crate allows the definition of constants and functions.
 
+CONSTANTS:
+
+|==
+| Name | Value | Description
+
+| e
+| 2.71828182845904523536028747135266250f64
+| Euler's number (e)
+
+| pi, π
+| 3.14159265358979323846264338327950288f64
+| Archimedes' constant (π)
+|==
+
+FUNCTIONS:
+
+|==
+| Name | Description
+
+| sqrt(x)
+| Square root of x
+
+| abs(x)
+| Absolute value of x
+|==
+        
 USAGE: math <expr>
-       quickmafs <expr>
+        math <expr>
 
         where <expr> is a valid mathematical expression.
 ",

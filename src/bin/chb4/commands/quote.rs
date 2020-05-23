@@ -28,8 +28,7 @@ pub fn command() -> Arc<Command> {
         )
         .about("Show or manage quotes")
         .description(
-            "Show or add a quote.
-
+            "
 USAGE: quote SUBCOMMAND
        quote <quote id>
 

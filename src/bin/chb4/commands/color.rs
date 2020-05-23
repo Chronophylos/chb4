@@ -7,7 +7,12 @@ pub fn command() -> Arc<Command> {
             let color = msg.color();
             Ok(MessageResult::ReplyWithValues(color.clone(), vec![color]))
         })
-        .about("print your current chat color")
-        .description("Prints your chat color")
+        .about("Print your current chat color")
+        .description(
+            "
+This always prints the hex code.
+Returning the actual name of the color is wip an depends on the `twitchchat` crate.
+",
+        )
         .done()
 }

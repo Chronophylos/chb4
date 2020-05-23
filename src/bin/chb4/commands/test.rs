@@ -7,13 +7,12 @@ pub fn command() -> Arc<Command> {
             Ok(if args.is_empty() {
                 MessageResult::Message(String::from("Test what?"))
             } else {
-                MessageResult::Message(String::from("Testing ") + &args[0])
+                MessageResult::Message(String::from("Testing ") + &args.join(" "))
             })
         })
         .about("Test everything!")
         .description(
-            "A Command to test the bot.
-
+            "
 USAGE: test [TEXT]...
 ",
         )
