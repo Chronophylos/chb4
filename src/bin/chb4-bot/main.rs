@@ -2,16 +2,16 @@
 extern crate log;
 
 use chb4::{
-    actions::{ActionHandler, self},
-    commands::{CommandHandler, self},
+    actions::{self, ActionHandler},
+    commands::{self, CommandHandler},
     context::BotContext,
     database::{self, Channel, Voicemail},
     handler::Twitch,
     manpages, TwitchBot,
 };
-use flexi_logger::Logger;
 use config::{Config, Environment, File, FileFormat};
 use diesel::r2d2::{ConnectionManager, Pool};
+use flexi_logger::Logger;
 use snafu::{ResultExt, Snafu};
 use std::{env, sync::Arc};
 

@@ -5,6 +5,12 @@ authors = ["Chronophylos <nikolai@chronophylos.com>"]
 edition = "2018"
 default-run = "chb4-bot"
 
+[[bin]]
+name = "chb4-bot"
+
+[[bin]]
+name = "chb4-web"
+
 [profile.release]
 lto = true
 opt-level = 'z'  # Optimize for size.
@@ -26,6 +32,7 @@ humantime           = "2"
 hyper               = "0.13"
 lazy_static         = "1.4"
 log                 = "0.4"
+lru                 = "0.4"
 nom                 = "5"
 r2d2                = "0.8"
 rand                = { version = "0.7", features = ["log"] }

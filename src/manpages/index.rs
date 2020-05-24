@@ -39,9 +39,14 @@ impl Index {
         }
     }
 
-    pub fn whatis(&self, chapter: Option<ChapterName>, name: String) -> Option<Arc<Manpage>> {
+    pub fn whatis<S, C>(&self, chapter: Option<C>, name: S) -> Option<Arc<Manpage>>
+    where
+        S: Into<String>,
+        C: Into<ChapterName>,
+    {
+        let name = name.into();
         match chapter {
-            Some(c) => match self.chapters.get(&c) {
+            Some(c) => match self.chapters.get(&c.into()) {
                 Some(c) => c.get_page(name),
                 None => None,
             },
