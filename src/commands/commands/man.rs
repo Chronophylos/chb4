@@ -26,13 +26,15 @@ Provides manuals to every command or action. The manuals are split into differen
 Chapter `action` contains Actions such as the `voicemail (1)` action that allows replaying of messages.
 Chapter `command` contains Commands like this `man (2)` command or the `voicemail (2)` command.
 
-This command gives a short overview over a command. The full manual is available on the web (wip).
+This command gives a short overview over a command. The full manual is available on the web.
 
 USAGE: man [CHAPTER] PAGE
 ")
 .example("
+```
 < man action voicemail
 > voicemail - redeems voicemails created with tell https://crate.chronophylos.com/action/voicemail
+```
 ")
         .done()
 }

@@ -14,5 +14,12 @@ This always prints the hex code.
 Returning the actual name of the color is wip an depends on the `twitchchat` crate.
 ",
         )
+        .example(
+            "
+```
+> ~color
+< Chronophylos, #7700B3
+```",
+        )
         .done()
 }

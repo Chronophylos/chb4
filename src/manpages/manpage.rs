@@ -1,5 +1,5 @@
 use super::ChapterName;
-use snafu::{OptionExt, ResultExt, Snafu};
+use snafu::{ResultExt, Snafu};
 use std::{fmt, fs::File, io::prelude::*, path::Path};
 
 #[derive(Debug, Snafu)]
@@ -58,11 +58,22 @@ impl Manpage {
     }
 
     pub fn short(&self) -> String {
-        format!("{} - {}", self.names.join(", "), self.about)
+        format!(
+            "{} - {} https://chb4.chronophylos.com/{}/{}",
+            self.names.join(", "),
+            self.about,
+            self.chapter,
+            self.name()
+        )
     }
 
     fn render_title(&self) -> Result<String> {
-        Ok(format!("= {}", self.names.get(0).context(GetName)?))
+        Ok(format!(
+            "= {}
+:icons: font
+    Version: CHB4 {{pkg_version}} ({{git_hash}})",
+            self
+        ))
     }
 
     fn render_aliases(&self) -> String {

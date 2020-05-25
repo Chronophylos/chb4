@@ -39,7 +39,7 @@ impl CommandHandler {
             context,
             commands: command_map,
             aliases,
-            prefix: '§',
+            prefix: '~',
         }
     }
 }

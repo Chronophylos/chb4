@@ -23,16 +23,20 @@ pub fn command() -> Arc<Command> {
         })
         .about("Various commands to manage the bot.")
         .description(
-            "
-This is a owner only command!
+            r#"
+NOTE: This is a owner only command!
 
-USAGE: admin SUBCOMMAND
+=== USAGE
 
-SUBCOMMANDS:
-    stop - stop the bot
-    leave CHANNEL - leave a channel
-    join CHANNEL - join a channel
-",
+```
+admin SUBCOMMAND
+```
+
+.SUBCOMMAND
+* `stop` -- stop the bot
+* `leave CHANNEL` -- leave a channel
+* `join CHANNEL` -- join a channel
+"#,
         )
         .done()
 }

@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate log;
+use anyhow::{ensure, Context, Result};
 use chb4::{actions, commands, manpages};
 use config::{Config, Environment, File, FileFormat};
 use flexi_logger::Logger;
@@ -9,13 +10,22 @@ use hyper::{
 };
 use lru::LruCache;
 use std::{
+    convert::TryInto,
     io::prelude::*,
+    net::IpAddr,
     process::{Command, Stdio},
     sync::{Arc, Mutex},
 };
 
-fn convert_asciidoc(text: String) -> std::io::Result<String> {
+fn convert_asciidoc(text: String) -> Result<String> {
+    let version = env!("CARGO_PKG_VERSION");
+    let git_hash = env!("GIT_HASH");
+
     let asciidoctor = Command::new("asciidoctor")
+        .arg("-a")
+        .arg(format!("pkg_version={}", version))
+        .arg("-a")
+        .arg(format!("git_hash={}", git_hash))
         .arg("-o")
         .arg("-")
         .arg("-")
@@ -23,10 +33,16 @@ fn convert_asciidoc(text: String) -> std::io::Result<String> {
         .stdout(Stdio::piped())
         .spawn()?;
 
-    asciidoctor.stdin.unwrap().write_all(text.as_bytes())?;
+    asciidoctor
+        .stdin
+        .context("Stdin is missing")?
+        .write_all(text.as_bytes())?;
 
     let mut buf = String::new();
-    asciidoctor.stdout.unwrap().read_to_string(&mut buf)?;
+    asciidoctor
+        .stdout
+        .context("Stdout is missing")?
+        .read_to_string(&mut buf)?;
 
     Ok(buf)
 }
@@ -53,6 +69,13 @@ fn handle_conn(
 
     let chapter = splitted[1];
     let pagename = splitted[2];
+
+    if chapter.is_empty() || pagename.is_empty() {
+        return Ok(Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Body::from("Malformed path"))?);
+    }
+
     let key = format!("{}/{}", chapter, pagename);
 
     {
@@ -92,12 +115,29 @@ fn handle_conn(
     Ok(resp)
 }
 
+async fn shutdown_signal() {
+    // Wait for the CTRL+C signal
+    tokio::signal::ctrl_c()
+        .await
+        .expect("failed to install CTRL+C signal handler");
+}
+
+fn check_asciidoctor() -> Result<bool> {
+    Ok(Command::new("asciidoctor")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .status()?
+        .success())
+}
+
 #[tokio::main]
-pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn main() -> Result<()> {
     // Create logger with custom format (`chb4::format`)
     Logger::with_env_or_str("chb4=trace, rustls=info, debug")
         .format(chb4::format)
         .start()?;
+
+    ensure!(check_asciidoctor()?, "Missing dependency `asciidoctor`");
 
     // Get crate version and git hash from environment.
     // Both env vars are set in `build.rs`.
@@ -124,7 +164,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // look for config in environment
         .merge(Environment::with_prefix("CHB4").separator("_"))?;
 
-    info!("Loaded config");
+    config.set_default("manserver.host", "localhost")?;
+    config.set_default("manserver.port", 3000)?;
+
+    debug!("Loaded config");
     let action_index = actions::all();
     let command_index = commands::all();
 
@@ -164,23 +207,38 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 async move {
                     match handle_conn(manpage_index, cache, req) {
                         Ok(resp) => Ok::<_, Error>(resp),
-                        Err(err) => Ok::<_, Error>(Response::new(Body::from(format!(
-                            "Internal Server Error: {}",
-                            err
-                        )))),
+                        Err(err) => {
+                            error!("Handling Connection: {}", err);
+                            Ok::<_, Error>(Response::new(Body::from(format!(
+                                "Internal Server Error: {}",
+                                err
+                            ))))
+                        }
                     }
                 }
             }))
         }
     });
 
-    let addr = ([127, 0, 0, 1], 3000).into();
+    let host: IpAddr = {
+        let entry = config.get_str("manserver.host")?;
+
+        if entry == "localhost" {
+            [127, 0, 0, 1].into()
+        } else {
+            entry.parse()?
+        }
+    };
+    let port = config.get_int("manserver.port")?.try_into()?;
+    let addr = (host, port).into();
 
     let server = Server::bind(&addr).serve(make_service);
 
+    let graceful = server.with_graceful_shutdown(shutdown_signal());
+
     info!("Listening on http://{}", addr);
 
-    server.await?;
+    graceful.await?;
 
     Ok(())
 }
