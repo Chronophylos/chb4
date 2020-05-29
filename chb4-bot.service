@@ -1,0 +1,8 @@
+[Unit]
+Description=CHB4 Twitch Bot
+
+[Service]
+ExecStart=/usr/bin/chb4-bot
+
+[Install]
+WantedBy=network-online.target
