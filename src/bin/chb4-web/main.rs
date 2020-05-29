@@ -1,5 +1,11 @@
+#![warn(clippy::result_unwrap_used)]
+#![warn(clippy::option_unwrap_used)]
+#![warn(clippy::dbg_macro)]
+#![warn(clippy::todo)]
+
 #[macro_use]
 extern crate log;
+
 use anyhow::{ensure, Context, Result};
 use chb4::{actions, commands, manpages};
 use config::{Config, Environment, File, FileFormat};

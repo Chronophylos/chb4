@@ -13,8 +13,6 @@ name = "chb4-web"
 
 [profile.release]
 lto = true
-opt-level = 'z'  # Optimize for size.
-panic = 'abort' # abort on panic instead of unwinding
 
 [dependencies]
 async-trait         = "0.1"
