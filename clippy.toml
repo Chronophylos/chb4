@@ -1,0 +1,5 @@
+
+result_unwrap_used = "warn"
+option_unwrap_used = "warn"
+dbg_macro = "warn"
+todo = "warn"
