@@ -1,0 +1,8 @@
+[Unit]
+Description=CHB4 Manpage Webserver
+
+[Service]
+ExecStart=/usr/bin/chb4-web
+
+[Install]
+WantedBy=network-online.target
