@@ -10,7 +10,7 @@ lazy_static! {
 pub fn command() -> Arc<Command> {
     Command::with_name("voicemail")
         .alias("tell")
-        .command(move |context,args, msg, _user| {
+        .command(move |context, args, msg, _user| {
             let user_id = msg.twitch_id().unwrap();
             let line = args.join(" ");
             let mut voicemail: Voicemail = match line.parse() {
@@ -21,25 +21,25 @@ pub fn command() -> Arc<Command> {
             let conn = &context.conn();
 
             let channel_name = msg.channel().to_owned();
-            let channel = match database::Channel::by_name(conn, channel_name.trim_start_matches('#')) {
-                Ok(c) => match c {
-                    Some(c) => c,
-                    None => return Err(MessageError::from(format!("Channel not in database (name: {})", msg.channel()))),
-                },
-                Err(e)=>return Err(MessageError::from(e.to_string())),
-            };
+            let channel =
+                match database::Channel::by_name(conn, channel_name.trim_start_matches('#')) {
+                    Ok(c) => match c {
+                        Some(c) => c,
+                        None => {
+                            return Err(MessageError::from(format!(
+                                "Channel not in database (name: {})",
+                                msg.channel()
+                            )))
+                        }
+                    },
+                    Err(e) => return Err(MessageError::from(e.to_string())),
+                };
 
             let bot_name = context.bot_name();
             voicemail.recipients.retain(|x| x != &bot_name);
 
             let now = Utc::now().naive_utc();
-            match database::Voicemail::new(
-                conn,
-                &voicemail,
-                user_id as i64,
-                channel.id,
-                now,
-            ) {
+            match database::Voicemail::new(conn, &voicemail, user_id as i64, channel.id, now) {
                 Ok(voicemails) => {
                     if voicemail.schedule.is_none() {
                         Ok(MessageResult::Message(format!(
@@ -57,7 +57,8 @@ pub fn command() -> Arc<Command> {
                             "I'll send that message to {} in {}",
                             voicemail.recipients.join(", "),
                             format_duration(
-                                    voicemail.schedule
+                                voicemail
+                                    .schedule
                                     .unwrap()
                                     .signed_duration_since(now)
                                     .to_std()
@@ -72,15 +73,43 @@ pub fn command() -> Arc<Command> {
         .about("Send messages to other users or yourself")
         .description(
             "
-USAGE: tell RECIPIENTS [SCHEDULE] MESSAGE
+=== USAGE
 
-RECIPIENTS:
-    A separated list of recipients. Valid separators are `and`, `und`, `&&` and `,`.
+```
+tell RECIPIENTS [SCHEDULE] MESSAGE
+```
 
-SCHEDLUE:
-    Either relative or absolute. 
-    * A relative schedule is something like `in 20 minutes` and requires a `in` before any times.
-    * A absoulte schedule is something like `on 2020-03-11` and requires a `at` or `on` befor the time.
+==== RECIPIENTS
+
+A separated list of recipients.
+Valid separators are `and`, `und`, `&&` and `,`.
+
+.Example:
+    nymn and pajlada
+
+==== SCHEDLUE
+
+To schedule a voicemail you need a marker and a value.
+
+[cols=3*,options=header]
+|===
+| type
+| markers
+| value
+
+| relative
+| `in`
+| A number and a unit, like `20 minutes` or `1 day`. You can even combine values: `1 day 12 hours`
+
+| absolute
+| `on`, `at`
+| A https://tools.ietf.org/html/rfc3339[RFC3339] Date-Time formatted string.
+RFC2822 and keywords like `noon` are wip.
+|===
+
+.Example:
+    in 20 minutes 2 hours
+    at 2020-02-20 20:20
 ",
         )
         .done()
