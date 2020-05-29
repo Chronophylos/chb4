@@ -5,6 +5,8 @@
 
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate diesel_migrations;
 
 use chb4::{
     actions::{self, ActionHandler},
@@ -19,6 +21,8 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use flexi_logger::Logger;
 use snafu::{ResultExt, Snafu};
 use std::{env, sync::Arc};
+
+embed_migrations!();
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -91,6 +95,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = ConnectionManager::new(config.get_str("database.url").context(GetConfigEntry)?);
     let pool = Pool::builder().build(manager).context(BuildR2D2Pool)?;
     debug!("Created Database Pool");
+
+    {
+        let conn = pool.get().unwrap();
+        embedded_migrations::run(&conn).unwrap();
+    }
+    debug!("Ran migrations");
 
     let (twitchbot, runner) = TwitchBot::new();
 
