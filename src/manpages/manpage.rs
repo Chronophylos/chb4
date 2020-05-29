@@ -59,7 +59,7 @@ impl Manpage {
 
     pub fn short(&self) -> String {
         format!(
-            "{} - {} https://chb4.chronophylos.com/{}/{}",
+            "{} - {} http://chb4.chronophylos.com/{}/{}",
             self.names.join(", "),
             self.about,
             self.chapter,
