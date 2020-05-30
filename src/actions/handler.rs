@@ -54,7 +54,7 @@ impl Twitch for ActionHandler {
         let mut writer = self.context.twitchbot().writer();
 
         for action in actions {
-            if action.noisy() {
+            if !action.noisy() {
                 // do not write to log on every message
                 debug!("Found matching action {:?}", action);
             }
