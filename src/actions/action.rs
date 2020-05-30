@@ -23,6 +23,7 @@ pub struct Action {
     description: &'static str,
     example: Option<&'static str>,
     command: ActionFunction,
+    noisy: bool,
 }
 
 impl Action {
@@ -36,6 +37,10 @@ impl Action {
 
     pub fn whitelisted(&self) -> bool {
         self.whitelisted
+    }
+
+    pub fn noisy(&self) -> bool {
+        self.noisy
     }
 }
 
@@ -76,6 +81,7 @@ impl fmt::Debug for Action {
             .field("description", &self.description)
             .field("example", &self.example)
             .field("whitelisted", &self.whitelisted)
+            .field("noisy", &self.noisy)
             .finish()
     }
 }
@@ -110,6 +116,7 @@ pub struct ActionBuilder {
     description: Option<&'static str>,
     example: Option<&'static str>,
     command: Option<ActionFunction>,
+    noisy: Option<bool>,
 }
 
 impl Into<Action> for ActionBuilder {
@@ -127,6 +134,7 @@ impl Into<Action> for ActionBuilder {
             description: self.description.unwrap_or("description missing"),
             example: self.example,
             command: self.command.unwrap(),
+            noisy: self.noisy.unwrap_or(false),
         }
     }
 }
@@ -154,6 +162,11 @@ impl ActionBuilder {
 
     pub fn whitelisted(mut self) -> Self {
         self.whitelisted = Some(true);
+        self
+    }
+
+    pub fn noisy(mut self) -> Self {
+        self.noisy = Some(true);
         self
     }
 

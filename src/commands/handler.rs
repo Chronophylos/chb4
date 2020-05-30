@@ -6,9 +6,20 @@ use crate::{
     handler::{Handler, SimpleHandler, Twitch},
     message::{Message, MessageConsumer, MessageResult},
 };
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use std::{collections::HashMap, sync::Arc};
+use thiserror::Error;
 use twitchchat::messages::Privmsg;
+
+#[derive(Error, Debug)]
+pub enum CommandHandlerError {
+    #[error("Could not execute command (name: {0})")]
+    ExecuteCommand(String),
+
+    #[error("Could not send privmsg")]
+    SendPrivmsg,
+}
 
 pub struct CommandHandler {
     commands: HashMap<String, Arc<Command>>,
@@ -60,78 +71,82 @@ impl Handler<Command> for CommandHandler {
 
 #[async_trait]
 impl Twitch for CommandHandler {
-    async fn handle(&self, msg: Arc<Privmsg<'_>>, user: &User) {
+    async fn handle(&self, msg: Arc<Privmsg<'_>>, user: &User) -> Result<()> {
         let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
         let words: Vec<String> = message.split_whitespace().map(|s| s.to_string()).collect();
         let mut command_name = words[0].clone();
         let prefix = command_name.remove(0);
 
         if prefix != self.prefix {
-            trace!("Dropping message because prefix was not found");
-            return;
+            trace!("Prefix not found");
+            return Ok(());
         }
 
         let args = &words[1..];
         trace!("Command: {} Args: {:?}", command_name, args);
 
-        match self.get(command_name) {
-            Some(cmd) => {
-                debug!("Found matching command {}", Command::name(&cmd));
-                if !cmd.whitelisted() {
-                    // or the command is enabled in this channel
-
-                    let mut writer = self.context.twitchbot().writer();
-
-                    trace!("Executing command");
-                    match cmd.consume(
-                        self.context.clone(),
-                        args.to_vec(),
-                        Message::TwitchPrivmsg(msg.clone()),
-                        user,
-                    ) {
-                        Ok(r) => match r {
-                            MessageResult::None => {}
-                            MessageResult::Message(m) => {
-                                writer
-                                    .privmsg(&msg.channel, &m)
-                                    .await
-                                    .expect("Could not write to channel");
-                            }
-                            MessageResult::MessageWithValues(m, _v) => {
-                                //if is_chaining() {
-                                //} else {
-
-                                writer
-                                    .privmsg(&msg.channel, &m)
-                                    .await
-                                    .expect("Could not write to channel");
-                            }
-                            MessageResult::Reply(m) => {
-                                writer
-                                    .privmsg(
-                                        &msg.channel,
-                                        format!("{}, {}", user.display_name_or_name(), m).as_str(),
-                                    )
-                                    .await
-                                    .expect("Could not write to channel");
-                            }
-                            MessageResult::ReplyWithValues(m, _v) => {
-                                writer
-                                    .privmsg(
-                                        &msg.channel,
-                                        format!("{}, {}", user.display_name_or_name(), m).as_str(),
-                                    )
-                                    .await
-                                    .expect("Could not write to channel");
-                            }
-                        },
-                        Err(e) => {
-                            error!("Could not execute command (name: {}): {:?}", cmd.name(), e);
-                        }
-                    }
-                }
+        let cmd = match self.get(command_name) {
+            Some(c) => c,
+            None => {
+                trace!("No matching command found");
+                return Ok(());
             }
-            None => debug!("No matching command found"),
+        };
+
+        debug!("Found matching command {}", Command::name(&cmd));
+
+        if cmd.whitelisted() {
+            debug!(
+                "Command is not whitelisted in this channel (name: {}, channel: {})",
+                cmd.name(),
+                msg.channel
+            );
+            return Ok(());
+        }
+
+        // or the command is enabled in this channel
+
+        let mut writer = self.context.twitchbot().writer();
+
+        trace!("Executing command");
+
+        match cmd
+            .consume(
+                self.context.clone(),
+                args.to_vec(),
+                Message::TwitchPrivmsg(msg.clone()),
+                user,
+            )
+            .context(CommandHandlerError::ExecuteCommand(cmd.name().to_owned()))?
+        {
+            MessageResult::None => Ok(()),
+            MessageResult::Message(m) => writer
+                .privmsg(&msg.channel, &m)
+                .await
+                .context(CommandHandlerError::SendPrivmsg),
+            MessageResult::MessageWithValues(m, _v) => {
+                //if is_chaining() {
+                //} else {
+
+                writer
+                    .privmsg(&msg.channel, &m)
+                    .await
+                    .context(CommandHandlerError::SendPrivmsg)
+            }
+            MessageResult::Reply(m) => writer
+                .privmsg(
+                    &msg.channel,
+                    format!("{}, {}", user.display_name_or_name(), m).as_str(),
+                )
+                .await
+                .context(CommandHandlerError::SendPrivmsg),
+            MessageResult::ReplyWithValues(m, _v) => writer
+                .privmsg(
+                    &msg.channel,
+                    format!("{}, {}", user.display_name_or_name(), m).as_str(),
+                )
+                .await
+                .context(CommandHandlerError::SendPrivmsg),
         }
     }
 }

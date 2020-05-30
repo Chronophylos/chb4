@@ -212,7 +212,14 @@ impl TwitchBot {
                 "Letting handler handle Message (handler: {})",
                 handler.name()
             );
-            handler.handle(Arc::new(msg.clone()), &user).await;
+            match handler.handle(Arc::new(msg.clone()), &user).await {
+                Ok(_) => {}
+                Err(err) => error!(
+                    "Could not handle message (handler: {}): {}",
+                    handler.name(),
+                    err
+                ),
+            };
         }
 
         Ok(())

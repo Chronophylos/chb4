@@ -23,5 +23,6 @@ pub fn action() -> Arc<Action> {
                 Err(e) => Err(MessageError::from(e.to_string())),
             }
         })
+        .noisy()
         .done()
 }

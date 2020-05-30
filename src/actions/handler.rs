@@ -5,9 +5,20 @@ use crate::{
     handler::{Handler, SimpleHandler, Twitch},
     message::{Message, MessageConsumer, MessageResult},
 };
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use std::sync::Arc;
+use thiserror::Error;
 use twitchchat::messages::Privmsg;
+
+#[derive(Debug, Error)]
+pub enum ActionHandlerError {
+    #[error("Could not execute action (name: {0})")]
+    ExecuteAction(String),
+
+    #[error("Could not send privmsg")]
+    SendPrivmsg,
+}
 
 pub struct ActionHandler {
     actions: Vec<Arc<Action>>,
@@ -36,56 +47,64 @@ impl SimpleHandler for ActionHandler {
 
 #[async_trait]
 impl Twitch for ActionHandler {
-    async fn handle(&self, msg: Arc<Privmsg<'_>>, user: &User) {
+    async fn handle(&self, msg: Arc<Privmsg<'_>>, user: &User) -> Result<()> {
         let message = msg.data.trim().replace("\u{e0000}", ""); // remove chatterino chars
 
         let actions = self.actions.iter().filter(|&act| act.is_match(&message));
         let mut writer = self.context.twitchbot().writer();
 
         for action in actions {
-            debug!("Found matching action {:?}", action);
+            if action.noisy() {
+                // do not write to log on every message
+                debug!("Found matching action {:?}", action);
+            }
 
-            if !action.whitelisted() {
-                // or the action is enabled in this channel
-                trace!("Executing action");
-                match action.consume(
+            if action.whitelisted() {
+                debug!(
+                    "Action is not whitelisted in this channel (name: {}, channel: {})",
+                    action.name(),
+                    msg.channel
+                );
+                return Ok(());
+            }
+
+            trace!("Executing action");
+
+            match action
+                .consume(
                     self.context.clone(),
                     Vec::new(),
                     Message::TwitchPrivmsg(msg.clone()),
                     user,
-                ) {
-                    Ok(r) => match r {
-                        MessageResult::None => {}
-                        MessageResult::Message(m) => writer
-                            .privmsg(&msg.channel, &m)
-                            .await
-                            .expect("Could not write to channel"),
-                        MessageResult::MessageWithValues(m, _v) => writer
-                            .privmsg(&msg.channel, &m)
-                            .await
-                            .expect("Could not write to channel"),
-                        MessageResult::Reply(m) => {
-                            writer
-                                .privmsg(
-                                    &msg.channel,
-                                    format!("{}, {}", user.display_name_or_name(), m).as_str(),
-                                )
-                                .await
-                                .expect("Could not write to channel");
-                        }
-                        MessageResult::ReplyWithValues(m, _v) => {
-                            writer
-                                .privmsg(
-                                    &msg.channel,
-                                    format!("{}, {}", user.display_name_or_name(), m).as_str(),
-                                )
-                                .await
-                                .expect("Could not write to channel");
-                        }
-                    },
-                    Err(e) => error!("Could not execute action ({}): {:?}", action.name(), e),
-                }
-            }
+                )
+                .context(ActionHandlerError::ExecuteAction(action.name().to_owned()))?
+            {
+                MessageResult::None => Ok(()),
+                MessageResult::Message(m) => writer
+                    .privmsg(&msg.channel, &m)
+                    .await
+                    .context(ActionHandlerError::SendPrivmsg),
+                MessageResult::MessageWithValues(m, _v) => writer
+                    .privmsg(&msg.channel, &m)
+                    .await
+                    .context(ActionHandlerError::SendPrivmsg),
+                MessageResult::Reply(m) => writer
+                    .privmsg(
+                        &msg.channel,
+                        format!("{}, {}", user.display_name_or_name(), m).as_str(),
+                    )
+                    .await
+                    .context(ActionHandlerError::SendPrivmsg),
+                MessageResult::ReplyWithValues(m, _v) => writer
+                    .privmsg(
+                        &msg.channel,
+                        format!("{}, {}", user.display_name_or_name(), m).as_str(),
+                    )
+                    .await
+                    .context(ActionHandlerError::SendPrivmsg),
+            }?;
         }
+
+        Ok(())
     }
 }

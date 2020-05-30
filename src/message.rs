@@ -1,6 +1,33 @@
 use crate::{context::BotContext, database::User};
 use std::sync::Arc;
+use thiserror::Error;
 use twitchchat::messages::Privmsg;
+
+pub type Result = std::result::Result<MessageResult, MessageError>;
+
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct MessageError(String);
+
+impl From<String> for MessageError {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl From<&str> for MessageError {
+    fn from(s: &str) -> Self {
+        Self(String::from(s))
+    }
+}
+
+pub enum MessageResult {
+    None,
+    Message(String),
+    MessageWithValues(String, Vec<String>),
+    Reply(String),
+    ReplyWithValues(String, Vec<String>),
+}
 
 pub trait MessageConsumer: Send + Sync {
     fn name(&self) -> &str;
@@ -44,28 +71,3 @@ impl Message<'_> {
         }
     }
 }
-
-pub enum MessageResult {
-    None,
-    Message(String),
-    MessageWithValues(String, Vec<String>),
-    Reply(String),
-    ReplyWithValues(String, Vec<String>),
-}
-
-#[derive(Debug)]
-pub struct MessageError(String);
-
-impl From<String> for MessageError {
-    fn from(s: String) -> Self {
-        Self(s)
-    }
-}
-
-impl From<&str> for MessageError {
-    fn from(s: &str) -> Self {
-        Self(String::from(s))
-    }
-}
-
-pub type Result = std::result::Result<MessageResult, MessageError>;
