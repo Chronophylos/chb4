@@ -1,3 +1,5 @@
+cargo-features = ["strip"]
+
 [package]
 name    = "chb4"
 version = "0.2.0"
