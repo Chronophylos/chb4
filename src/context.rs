@@ -28,7 +28,9 @@ pub struct BotContext {
     manpage_index: Arc<manpages::Index>,
 
     clock: Instant,
+
     pub version: &'static str,
+    pub git_commit: &'static str,
 }
 
 impl BotContext {
@@ -46,6 +48,7 @@ impl BotContext {
             manpage_index: Arc::new(manpage_index),
             clock: Instant::now(),
             version: env!("CARGO_PKG_VERSION"),
+            git_commit: env!("GIT_HASH"),
         })
     }
 
