@@ -5,6 +5,7 @@ mod prelude;
 
 mod admin;
 mod color;
+mod lastseen;
 mod man;
 mod math;
 mod ping;
@@ -21,6 +22,7 @@ pub fn all() -> Vec<Arc<Command>> {
         ping::command(),
         quote::command(),
         test::command(),
+        lastseen::command(),
         voicemail::command(),
     ]
 }
