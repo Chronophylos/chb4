@@ -13,6 +13,7 @@ name = "chb4-web"
 
 [profile.release]
 lto = true
+strip = "debuginfo"
 
 [dependencies]
 async-trait         = "0.1"

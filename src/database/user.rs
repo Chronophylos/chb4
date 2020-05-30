@@ -145,7 +145,7 @@ impl User {
         display_name: &'a str,
         now: &DateTime<Local>,
     ) -> Result<Self> {
-        debug!("Bumping user (twitch_id: {})", twitch_id);
+        debug!("Bumping user (twitch_id: {}, name: {})", twitch_id, name);
 
         // get the user from the database
         let user = match Self::by_twitch_id(conn, twitch_id)? {
