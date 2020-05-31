@@ -90,8 +90,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             target: "environment",
         })?;
 
-    info!("Loaded config");
+    info!("Loaded Config");
 
+    info!("Connecting to Database");
     let manager = ConnectionManager::new(config.get_str("database.url").context(GetConfigEntry)?);
     let pool = Pool::builder().build(manager).context(BuildR2D2Pool)?;
     debug!("Created Database Pool");
@@ -100,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let conn = pool.get().unwrap();
         embedded_migrations::run(&conn).unwrap();
     }
-    debug!("Ran migrations");
+    debug!("Ran database migrations");
 
     let (twitchbot, runner) = TwitchBot::new();
 
