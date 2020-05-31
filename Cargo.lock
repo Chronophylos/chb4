@@ -15,7 +15,7 @@ version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8716408b8bc624ed7f65d223ddb9ac2d044c0547b6fa4b0d554f3a9540496ada"
 dependencies = [
- "memchr",
+ "memchr 2.3.3",
 ]
 
 [[package]]
@@ -53,7 +53,7 @@ dependencies = [
  "futures-timer 3.0.2",
  "kv-log-macro",
  "log",
- "memchr",
+ "memchr 2.3.3",
  "num_cpus",
  "once_cell",
  "pin-project-lite",
@@ -126,6 +126,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bytesize"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81a18687293a1546b67c246452202bbbf143d239cb43494cc163da14979082da"
+
+[[package]]
 name = "cc"
 version = "1.0.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -158,7 +164,8 @@ dependencies = [
  "lazy_static",
  "log",
  "lru",
- "nom",
+ "nom 5.1.1",
+ "procinfo",
  "r2d2",
  "rand",
  "regex",
@@ -166,6 +173,7 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu",
+ "systemstat",
  "thiserror",
  "time",
  "tokio",
@@ -200,7 +208,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b076e143e1d9538dde65da30f8481c2a6c44040edb8e02b9bf1351edb92ce3"
 dependencies = [
  "lazy_static",
- "nom",
+ "nom 5.1.1",
  "serde",
  "toml",
 ]
@@ -503,7 +511,7 @@ dependencies = [
  "futures-macro",
  "futures-sink",
  "futures-task",
- "memchr",
+ "memchr 2.3.3",
  "pin-project",
  "pin-utils",
  "proc-macro-hack",
@@ -748,6 +756,15 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 
 [[package]]
 name = "memchr"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "148fab2e51b4f1cfc66da2a7c32981d1d3c083a803978268bb11fe4b86925e7a"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "memchr"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
@@ -856,12 +873,27 @@ checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
 
 [[package]]
 name = "nom"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf51a729ecf40266a2368ad335a5fdde43471f545a967109cd62146ecf8b66ff"
+
+[[package]]
+name = "nom"
+version = "3.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05aec50c70fd288702bcd93284a8444607f3292dbdf2a30de5ea5dcdbe72287b"
+dependencies = [
+ "memchr 1.0.2",
+]
+
+[[package]]
+name = "nom"
 version = "5.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b471253da97532da4b61552249c521e01e736071f71c1a4f7ebbfbf0a06aad6"
 dependencies = [
  "lexical-core",
- "memchr",
+ "memchr 2.3.3",
  "version_check",
 ]
 
@@ -1031,6 +1063,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "procinfo"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ab1427f3d2635891f842892dda177883dca0639e05fe66796a62c9d2f23b49c"
+dependencies = [
+ "byteorder",
+ "libc",
+ "nom 2.2.1",
+ "rustc_version",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1105,7 +1149,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c3780fcf44b193bc4d09f36d2a3c87b251da4a046c87795a0d35f4f927ad8e6"
 dependencies = [
  "aho-corasick",
- "memchr",
+ "memchr 2.3.3",
  "regex-syntax",
  "thread_local",
 ]
@@ -1355,6 +1399,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemstat"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2078da8d09c6202bffd5e075946e65bfad5ce2cfa161edb15c5f014a8440adee"
+dependencies = [
+ "bytesize",
+ "chrono",
+ "lazy_static",
+ "libc",
+ "nom 3.2.1",
+ "time",
+ "winapi 0.3.8",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1405,7 +1464,7 @@ dependencies = [
  "iovec",
  "lazy_static",
  "libc",
- "memchr",
+ "memchr 2.3.3",
  "mio",
  "mio-uds",
  "pin-project-lite",

@@ -10,12 +10,14 @@ mod man;
 mod math;
 mod ping;
 mod quote;
+mod system;
 mod test;
 mod version;
 mod voicemail;
 
 pub fn all() -> Vec<Arc<Command>> {
     vec![
+        system::command(),
         version::command(),
         admin::command(),
         color::command(),
