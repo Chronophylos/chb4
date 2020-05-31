@@ -67,7 +67,9 @@ impl MessageConsumer for Action {
         msg: Message,
         user: &User,
     ) -> Result {
-        info!("Executing action {}", self.name);
+        if !self.noisy {
+            info!("Executing action {}", self.name);
+        }
         (self.command)(context, msg, &user)
     }
 }
