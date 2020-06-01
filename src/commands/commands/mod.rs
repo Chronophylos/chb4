@@ -12,21 +12,23 @@ mod ping;
 mod quote;
 mod system;
 mod test;
+mod time;
 mod version;
 mod voicemail;
 
 pub fn all() -> Vec<Arc<Command>> {
     vec![
-        system::command(),
-        version::command(),
         admin::command(),
         color::command(),
+        lastseen::command(),
         man::command(),
         math::command(),
         ping::command(),
         quote::command(),
+        system::command(),
         test::command(),
-        lastseen::command(),
+        time::command(),
+        version::command(),
         voicemail::command(),
     ]
 }

@@ -50,3 +50,4 @@ tokio               = { version = "0.2", default-features = false, features = ["
 twitchchat          = { version = "0.10", default-features = false, features = ["async", "tokio_rustls"] }
 yansi               = "0.5"
 systemstat          = "0.1"
+chrono-tz           = "0.5"
