@@ -2,14 +2,18 @@ use super::prelude::*;
 use evalexpr::*;
 use std::f64::consts;
 
+static PHI: f64 = 1.61803398874989484820;
+
 pub fn command() -> Arc<Command> {
     Command::with_name("math")
         .alias("quickmafs")
         .command(move |_context, args, _msg, _user| {
             let context = context_map! {
                 "e" => consts::E,
-                "pi" => consts::PI,
                 "π" => consts::PI,
+                "pi" => consts::PI,
+                "phi" => PHI,
+                "φ" => PHI,
                 "sqrt" => Function::new(Box::new(|argument| {
                     if let Ok(int) = argument.as_int() {
                         Ok(Value::Float((int as f64).sqrt()))
@@ -24,6 +28,33 @@ pub fn command() -> Arc<Command> {
                         Ok(Value::Int(int.abs()))
                     } else if let Ok(float) = argument.as_float() {
                         Ok(Value::Float(float.abs()))
+                    } else {
+                        Err(EvalexprError::expected_number(argument.clone()))
+                    }
+                })),
+                "floor"=> Function::new(Box::new(|argument| {
+                    if let Ok(int) = argument.as_int() {
+                        Ok(Value::Int(int))
+                    } else if let Ok(float) = argument.as_float() {
+                        Ok(Value::Float(float.floor()))
+                    } else {
+                        Err(EvalexprError::expected_number(argument.clone()))
+                    }
+                })),
+                "ceil"=> Function::new(Box::new(|argument| {
+                    if let Ok(int) = argument.as_int() {
+                        Ok(Value::Int(int))
+                    } else if let Ok(float) = argument.as_float() {
+                        Ok(Value::Float(float.ceil()))
+                    } else {
+                        Err(EvalexprError::expected_number(argument.clone()))
+                    }
+                })),
+                "round"=> Function::new(Box::new(|argument| {
+                    if let Ok(int) = argument.as_int() {
+                        Ok(Value::Int(int))
+                    } else if let Ok(float) = argument.as_float() {
+                        Ok(Value::Float(float.round()))
                     } else {
                         Err(EvalexprError::expected_number(argument.clone()))
                     }
@@ -42,9 +73,8 @@ pub fn command() -> Arc<Command> {
             "
 This command uses the `evalexpr` crate. This crate allows the definition of constants and functions.
 
-CONSTANTS:
-
-|==
+.Constants
+|===
 | Name | Value | Description
 
 | e
@@ -54,11 +84,10 @@ CONSTANTS:
 | pi, π
 | 3.14159265358979323846264338327950288f64
 | Archimedes' constant (π)
-|==
+|===
 
-FUNCTIONS:
-
-|==
+.Functions
+|===
 | Name | Description
 
 | sqrt(x)
@@ -66,12 +95,23 @@ FUNCTIONS:
 
 | abs(x)
 | Absolute value of x
-|==
-        
-USAGE: math <expr>
-        math <expr>
 
-        where <expr> is a valid mathematical expression.
+| floor(x)
+| Returns the largest integer less than or equal to a number.
+
+| ceil(x)
+| Returns the smallest integer greater than or equal to a number.
+
+| round(x)
+| Returns the nearest integer to a number. Round half-way cases away from `0.0`.
+|===
+
+==== USAGE
+
+```
+math <expr>
+```
+Where <expr> is a valid mathematical expression.
 ",
         )
         .done()
