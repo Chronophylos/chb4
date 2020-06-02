@@ -102,8 +102,8 @@ impl TwitchBot {
         let done = runner.run(stream);
 
         tokio::select! {
-            _ = bot => { warn!("bot stopped"); Ok(Status::Canceled)}
-            status = done => { status.context(RunRunner) }
+            _ = bot => { warn!("bot stopped"); Ok(Status::Canceled) }
+            status = done => { panic!(status.context(RunRunner)) }
         }
     }
 
