@@ -2,7 +2,7 @@ cargo-features = ["strip"]
 
 [package]
 name    = "chb4"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Chronophylos <nikolai@chronophylos.com>"]
 edition = "2018"
 default-run = "chb4-bot"
