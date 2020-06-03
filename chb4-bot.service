@@ -4,6 +4,8 @@ Description=CHB4 Twitch Bot
 [Service]
 ExecStart=/usr/bin/chb4-bot
 Environment="RUST_LOG=info"
+Environment="RUST_BACKTRACE=full"
+Restart=always
 
 [Install]
 WantedBy=network-online.target
