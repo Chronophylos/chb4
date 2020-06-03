@@ -11,16 +11,14 @@ pub fn command() -> Arc<Command> {
             let (mem_proc, mem_used, mem_total) =
                 mem(&sys).context("Could not get memory information")?;
             let load_avg = sys.load_average().context("Could not get load average")?;
-            let cpu_temp = sys.cpu_temp().context("Could not get CPU temperature")?;
             let uptime = sys.uptime().context("Could not get system uptime")?;
 
             Ok(MessageResult::Message(format!(
-                "Memory usage: {}/{}/{} Load: {} CPU Temp: {}°C Uptime: {} System Uptime: {}",
+                "Memory usage: {}/{}/{} Load: {} Uptime: {} System Uptime: {}",
                 mem_proc.to_string_as(true),
                 mem_used.to_string_as(true),
                 mem_total.to_string_as(true),
                 load_avg.five,
-                cpu_temp,
                 humantime::format_duration(truncate_duration(context.elapsed())),
                 humantime::format_duration(truncate_duration(uptime)),
             )))
