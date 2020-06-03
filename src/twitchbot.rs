@@ -103,7 +103,7 @@ impl TwitchBot {
 
         tokio::select! {
             _ = bot => { warn!("bot stopped"); Ok(Status::Canceled) }
-            status = done => { panic!("Bot stopped unexpectedly: {}", status.context(RunRunner)) }
+            status = done => { panic!("Bot stopped unexpectedly: {:?}", status.context(RunRunner)) }
         }
     }
 
