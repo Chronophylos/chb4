@@ -12,15 +12,12 @@ pub fn command() -> Arc<Command> {
             let latency = Duration::from_millis(now - ts);
             let elapsed = context.elapsed();
 
-            Ok(MessageResult::MessageWithValues(
-                format!(
-                    "Pong! Latency to TMI: {}. The bot has been running for {}",
-                    format_duration(latency),
-                    format_duration(truncate_duration(elapsed))
-                ),
-                vec![format!("{}", now - ts), format!("{}", elapsed.as_millis())],
-            ))
+            Ok(MessageResult::Message(format!(
+                "Pong! Latency to TMI: {}. The bot has been running for {}",
+                format_duration(latency),
+                format_duration(truncate_duration(elapsed))
+            )))
         })
-        .about("Get system information about the bot")
+        .about("Get information about the bot instance")
         .done()
 }

@@ -3,7 +3,8 @@ pub use crate::{
     context::BotContext,
     database,
     helpers::{truncate_duration, Permission},
-    message::{Message, MessageError, MessageResult, Result},
+    message::{Message, MessageResult},
 };
+pub use anyhow::{bail, ensure, Context, Result};
 pub use std::sync::Arc;
 pub use twitchchat::messages::Privmsg;

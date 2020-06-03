@@ -3,13 +3,14 @@ use crate::{
     database::User,
     helpers::prettify_bool,
     manpages::{ChapterName, Manpage, ManpageProducer},
-    message::{Message, MessageConsumer, Result},
+    message::{Message, MessageConsumer, MessageResult},
 };
+use anyhow::Result;
 use regex::Regex;
 use std::{fmt, sync::Arc};
 
 pub type ActionFunction =
-    Box<dyn Fn(Arc<BotContext>, Message, &User) -> Result + Send + Sync + 'static>;
+    Box<dyn Fn(Arc<BotContext>, Message, &User) -> Result<MessageResult> + Send + Sync + 'static>;
 
 // I want trait aliases PepeHands
 //pub type ActionFunctionImpl =
@@ -66,7 +67,7 @@ impl MessageConsumer for Action {
         _args: Vec<String>,
         msg: Message,
         user: &User,
-    ) -> Result {
+    ) -> Result<MessageResult> {
         if !self.noisy {
             info!("Executing action {}", self.name);
         }
@@ -189,7 +190,7 @@ impl ActionBuilder {
 
     pub fn command(
         mut self,
-        f: impl Fn(Arc<BotContext>, Message, &User) -> Result + Send + Sync + 'static,
+        f: impl Fn(Arc<BotContext>, Message, &User) -> Result<MessageResult> + Send + Sync + 'static,
     ) -> Self {
         self.command = Some(Box::new(f));
         self

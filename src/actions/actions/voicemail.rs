@@ -6,10 +6,7 @@ pub fn action() -> Arc<Action> {
         .command(move |context, _msg, user| {
             let conn = &context.conn();
 
-            let voicemails = match user.pop(conn) {
-                Ok(v) => v,
-                Err(e) => return Err(MessageError::from(e.to_string())),
-            };
+            let voicemails = user.pop(conn).context("Could not pop voicemails")?;
 
             if voicemails.is_empty() {
                 trace!("No voicemails found");
@@ -18,10 +15,9 @@ pub fn action() -> Arc<Action> {
 
             trace!("Found {} voicemails", voicemails.len());
 
-            match Voicemail::format_vec(conn, voicemails) {
-                Ok(m) => Ok(MessageResult::Message(m)),
-                Err(e) => Err(MessageError::from(e.to_string())),
-            }
+            Ok(MessageResult::Message(Voicemail::format_vec(
+                conn, voicemails,
+            )?))
         })
         .noisy()
         .done()

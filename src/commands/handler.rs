@@ -120,19 +120,6 @@ impl Twitch for CommandHandler {
             .context(CommandHandlerError::ExecuteCommand(cmd.name().to_owned()))?
         {
             MessageResult::None => Ok(()),
-            MessageResult::Message(m) => writer
-                .privmsg(&msg.channel, &m)
-                .await
-                .context(CommandHandlerError::SendPrivmsg),
-            MessageResult::MessageWithValues(m, _v) => {
-                //if is_chaining() {
-                //} else {
-
-                writer
-                    .privmsg(&msg.channel, &m)
-                    .await
-                    .context(CommandHandlerError::SendPrivmsg)
-            }
             MessageResult::Reply(m) => writer
                 .privmsg(
                     &msg.channel,
@@ -140,11 +127,16 @@ impl Twitch for CommandHandler {
                 )
                 .await
                 .context(CommandHandlerError::SendPrivmsg),
-            MessageResult::ReplyWithValues(m, _v) => writer
-                .privmsg(
-                    &msg.channel,
-                    format!("{}, {}", user.display_name_or_name(), m).as_str(),
-                )
+            MessageResult::Message(m) => writer
+                .privmsg(&msg.channel, &m)
+                .await
+                .context(CommandHandlerError::SendPrivmsg),
+            MessageResult::Error(m) => writer
+                .privmsg(&msg.channel, format!("Error: {}", m))
+                .await
+                .context(CommandHandlerError::SendPrivmsg),
+            MessageResult::MissingArgument(a) => writer
+                .privmsg(&msg.channel, format!("Missing argument `{}`", a))
                 .await
                 .context(CommandHandlerError::SendPrivmsg),
         }

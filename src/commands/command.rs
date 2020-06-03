@@ -3,12 +3,17 @@ use crate::{
     database::User,
     helpers::prettify_bool,
     manpages::{ChapterName, Manpage, ManpageProducer},
-    message::{Message, MessageConsumer, Result},
+    message::{Message, MessageConsumer, MessageResult},
 };
+use anyhow::Result;
 use std::{fmt, sync::Arc};
 
-pub type CommandFunction =
-    Box<dyn Fn(Arc<BotContext>, Vec<String>, Message, &User) -> Result + Send + Sync + 'static>;
+pub type CommandFunction = Box<
+    dyn Fn(Arc<BotContext>, Vec<String>, Message, &User) -> Result<MessageResult>
+        + Send
+        + Sync
+        + 'static,
+>;
 
 // I want trait aliases PepeHands
 // pub type CommandFunctionImpl =
@@ -58,7 +63,7 @@ impl MessageConsumer for Command {
         args: Vec<String>,
         msg: Message,
         user: &User,
-    ) -> Result {
+    ) -> Result<MessageResult> {
         info!("Executing command {} with args {:?}", self.name, args);
         (self.command)(context, args, msg, &user)
     }
@@ -204,7 +209,10 @@ impl CommandBuilder {
 
     pub fn command(
         mut self,
-        f: impl Fn(Arc<BotContext>, Vec<String>, Message, &User) -> Result + Send + Sync + 'static,
+        f: impl Fn(Arc<BotContext>, Vec<String>, Message, &User) -> Result<MessageResult>
+            + Send
+            + Sync
+            + 'static,
     ) -> Self {
         self.command = Some(Box::new(f));
         self

@@ -1,32 +1,14 @@
 use crate::{context::BotContext, database::User};
+use anyhow::Result;
 use std::sync::Arc;
-use thiserror::Error;
 use twitchchat::messages::Privmsg;
-
-pub type Result = std::result::Result<MessageResult, MessageError>;
-
-#[derive(Debug, Error)]
-#[error("{0}")]
-pub struct MessageError(String);
-
-impl From<String> for MessageError {
-    fn from(s: String) -> Self {
-        Self(s)
-    }
-}
-
-impl From<&str> for MessageError {
-    fn from(s: &str) -> Self {
-        Self(String::from(s))
-    }
-}
 
 pub enum MessageResult {
     None,
-    Message(String),
-    MessageWithValues(String, Vec<String>),
     Reply(String),
-    ReplyWithValues(String, Vec<String>),
+    Message(String),
+    Error(String),
+    MissingArgument(&'static str),
 }
 
 pub trait MessageConsumer: Send + Sync {
@@ -39,7 +21,7 @@ pub trait MessageConsumer: Send + Sync {
         args: Vec<String>,
         msg: Message,
         user: &User,
-    ) -> Result;
+    ) -> Result<MessageResult>;
 }
 
 pub enum Message<'a> {
@@ -55,13 +37,13 @@ impl Message<'_> {
 
     pub fn twitch_id(&self) -> Option<u64> {
         match self {
-            Self::TwitchPrivmsg(msg) => Some(msg.user_id().unwrap()),
+            Self::TwitchPrivmsg(msg) => msg.user_id(),
         }
     }
 
     pub fn sent_ts(&self) -> u64 {
         match self {
-            Self::TwitchPrivmsg(msg) => msg.tmi_sent_ts().unwrap(),
+            Self::TwitchPrivmsg(msg) => msg.tmi_sent_ts().unwrap_or(0),
         }
     }
 

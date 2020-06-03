@@ -5,7 +5,7 @@ pub fn command() -> Arc<Command> {
         .chainable()
         .command(|_context, _args, msg, _user| {
             let color = msg.color();
-            Ok(MessageResult::ReplyWithValues(color.clone(), vec![color]))
+            Ok(MessageResult::Reply(color.clone()))
         })
         .about("Print your current chat color")
         .description(

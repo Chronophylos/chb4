@@ -15,59 +15,52 @@ pub fn command() -> Arc<Command> {
             let line = args.join(" ");
             let mut voicemail: Voicemail = match line.parse() {
                 Ok(v) => v,
-                Err(e) => return Ok(MessageResult::Message(format!("{:?}", e))),
+                Err(err) => {
+                    return Ok(MessageResult::Error(format!(
+                        "Could not parse voicemail: {}",
+                        err
+                    )))
+                }
             };
 
             let conn = &context.conn();
 
             let channel_name = msg.channel().to_owned();
-            let channel =
-                match database::Channel::by_name(conn, channel_name.trim_start_matches('#')) {
-                    Ok(c) => match c {
-                        Some(c) => c,
-                        None => {
-                            return Err(MessageError::from(format!(
-                                "Channel not in database (name: {})",
-                                msg.channel()
-                            )))
-                        }
-                    },
-                    Err(e) => return Err(MessageError::from(e.to_string())),
-                };
+            let channel = database::Channel::by_name(conn, channel_name.trim_start_matches('#'))
+                .context("Could not get channel from database")?
+                .context("Channel is not in database")?;
 
             let bot_name = context.bot_name();
             voicemail.recipients.retain(|x| x != &bot_name);
 
             let now = Utc::now().naive_utc();
-            match database::Voicemail::new(conn, &voicemail, user_id as i64, channel.id, now) {
-                Ok(voicemails) => {
-                    if voicemail.schedule.is_none() {
-                        Ok(MessageResult::Message(format!(
-                            "I'll send that message to {} when they next type in chat.",
-                            voicemail.recipients.join(", ")
-                        )))
-                    } else {
-                        // actually schedule voicemail
+            let voicemails =
+                database::Voicemail::new(conn, &voicemail, user_id as i64, channel.id, now)
+                    .context("Could not insert voicemail(s) to database")?;
+            if voicemail.schedule.is_none() {
+                Ok(MessageResult::Message(format!(
+                    "I'll send that message to {} when they next type in chat.",
+                    voicemail.recipients.join(", ")
+                )))
+            } else {
+                // actually schedule voicemail
 
-                        for voicemail in voicemails {
-                            context.scheduler().schedule(voicemail).unwrap();
-                        }
-
-                        Ok(MessageResult::Message(format!(
-                            "I'll send that message to {} in {}",
-                            voicemail.recipients.join(", "),
-                            format_duration(
-                                voicemail
-                                    .schedule
-                                    .unwrap()
-                                    .signed_duration_since(now)
-                                    .to_std()
-                                    .unwrap_or_default()
-                            ),
-                        )))
-                    }
+                for voicemail in voicemails {
+                    context.scheduler().schedule(voicemail).unwrap();
                 }
-                Err(e) => Err(MessageError::from(e.to_string())),
+
+                Ok(MessageResult::Message(format!(
+                    "I'll send that message to {} in {}",
+                    voicemail.recipients.join(", "),
+                    format_duration(
+                        voicemail
+                            .schedule
+                            .unwrap()
+                            .signed_duration_since(now)
+                            .to_std()
+                            .unwrap_or_default()
+                    ),
+                )))
             }
         })
         .about("Send messages to other users or yourself")

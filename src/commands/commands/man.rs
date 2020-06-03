@@ -5,7 +5,7 @@ pub fn command() -> Arc<Command> {
         .aliases(vec!["help", "whatis", "hilbe"])
         .command(move |context, args, _msg, _user| {
             if args.is_empty() {
-                return Err(MessageError::from("Not enough arguments"));
+                return Ok(MessageResult::MissingArgument("page"));
             }
 
             let (chapter, name) = match args.get(1) {
@@ -17,7 +17,7 @@ pub fn command() -> Arc<Command> {
 
             match context.whatis(chapter, name.to_owned()) {
                 Some(m) => Ok(MessageResult::Message(m.short())),
-                None => Ok(MessageResult::Message(String::from("No page found"))),
+                None => Ok(MessageResult::Message("No page found".into())),
             }
         })
         .about("Get help about a command")

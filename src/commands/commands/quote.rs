@@ -51,7 +51,12 @@ NOTES:
         .done()
 }
 
-fn add(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) -> Result {
+fn add(
+    context: Arc<BotContext>,
+    msg: Message,
+    user: &User,
+    args: Vec<String>,
+) -> Result<MessageResult> {
     let permission = Permission::from_user(msg, &user).unwrap();
 
     // check if permission is at least friend
@@ -63,14 +68,11 @@ fn add(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) -
     let msg = args.join(" ");
     let (message, author, authored) = match parse_quote(&msg) {
         Ok(t) => t,
-        Err(e) => return Err(e),
+        Err(err) => return Ok(MessageResult::Error(err.to_string())),
     };
 
     // insert quote
-    let quote = match Quote::new(&context.conn(), user.id, author, authored, message) {
-        Ok(q) => q,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let quote = Quote::new(&context.conn(), user.id, author, authored, message)?;
 
     info!("Added quote {} (id: {})", quote, quote.id);
     Ok(MessageResult::Message(format!(
@@ -79,13 +81,18 @@ fn add(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) -
     )))
 }
 
-fn remove(context: Arc<BotContext>, msg: Message, user: &User, qid: Option<&str>) -> Result {
+fn remove(
+    context: Arc<BotContext>,
+    msg: Message,
+    user: &User,
+    qid: Option<&str>,
+) -> Result<MessageResult> {
     // unwrap option
     let qid: &str = match qid {
         Some(qid) => qid,
         None => {
-            return Ok(MessageResult::Message(String::from(
-                "Argument quote id missing",
+            return Ok(MessageResult::Error(String::from(
+                "Missing argument: quote id",
             )))
         }
     };
@@ -99,24 +106,18 @@ fn remove(context: Arc<BotContext>, msg: Message, user: &User, qid: Option<&str>
     }
 
     // parse str to i32
-    let qid: i32 = match qid.parse() {
-        Ok(id) => id,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let qid: i32 = qid.parse()?;
 
     let conn = &context.conn();
 
     // query quote
-    let quote = match Quote::by_id(conn, qid) {
-        Ok(q) => q,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let quote = Quote::by_id(conn, qid)?;
 
     let quote = match quote {
         Some(q) => q,
         None => {
             return Ok(MessageResult::Message(format!(
-                "Not quote with id {} found",
+                "No quote with id {} found",
                 qid
             )))
         }
@@ -129,16 +130,20 @@ fn remove(context: Arc<BotContext>, msg: Message, user: &User, qid: Option<&str>
         )));
     }
 
-    match quote.remove(conn) {
-        Ok(_) => Ok(MessageResult::Message(format!(
-            "Removed quote with id {}",
-            qid
-        ))),
-        Err(e) => Err(MessageError::from(e.to_string())),
-    }
+    quote.remove(conn)?;
+
+    Ok(MessageResult::Message(format!(
+        "Removed quote with id {}",
+        qid
+    )))
 }
 
-fn edit(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) -> Result {
+fn edit(
+    context: Arc<BotContext>,
+    msg: Message,
+    user: &User,
+    args: Vec<String>,
+) -> Result<MessageResult> {
     // unwrap option
     let qid: &str = match args.get(0) {
         Some(q) => q,
@@ -154,24 +159,18 @@ fn edit(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) 
     }
 
     // parse str to i32
-    let qid: i32 = match qid.parse() {
-        Ok(id) => id,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let qid: i32 = qid.parse()?;
 
     let conn = &context.conn();
 
     // query quote
-    let quote = match Quote::by_id(conn, qid) {
-        Ok(q) => q,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let quote = Quote::by_id(conn, qid)?;
 
     let quote = match quote {
         Some(q) => q,
         None => {
             return Ok(MessageResult::Message(format!(
-                "Not quote with id {} found",
+                "No quote with id {} found",
                 qid
             )))
         }
@@ -187,68 +186,54 @@ fn edit(context: Arc<BotContext>, msg: Message, user: &User, args: Vec<String>) 
     let msg = args.join(" ");
     let (message, author, authored) = match parse_quote(&msg) {
         Ok(t) => t,
-        Err(e) => return Err(e),
+        Err(err) => return Ok(MessageResult::Error(err.to_string())),
     };
 
-    let quote = match quote.update(conn, author, authored, message) {
-        Ok(q) => q,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let quote = quote.update(conn, author, authored, message)?;
 
-    Ok(MessageResult::Message(format!("Edited quote {}", quote.id)))
+    Ok(MessageResult::Message(format!(
+        "Updated quote {}",
+        quote.id
+    )))
 }
 
-fn show(context: Arc<BotContext>, qid: Option<&str>) -> Result {
+fn show(context: Arc<BotContext>, qid: Option<&str>) -> Result<MessageResult> {
     // unwrap option
     let qid: &str = match qid {
         Some(qid) => qid,
         None => {
-            return Ok(MessageResult::Message(String::from(
-                "Argument quote id missing",
+            return Ok(MessageResult::Error(String::from(
+                "Missing argument: quote id",
             )))
         }
     };
 
     // parse str to i32
-    let qid: i32 = match qid.parse() {
-        Ok(id) => id,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let qid: i32 = qid.parse()?;
 
     // query quote
-    let quote = match Quote::by_id(&context.conn(), qid) {
-        Ok(q) => q,
-        Err(e) => return Err(MessageError::from(e.to_string())),
-    };
+    let quote = Quote::by_id(&context.conn(), qid)?;
 
     Ok(MessageResult::Message(match quote {
         Some(q) => format!("{}", q),
-        None => format!("Not quote with id {} found", qid),
+        None => format!("No quote with id {} found", qid),
     }))
 }
 
-fn parse_quote(msg: &str) -> std::result::Result<(&str, &str, &str), MessageError> {
+fn parse_quote(msg: &str) -> Result<(&str, &str, &str)> {
     // parse quote
-    let caps = match RE.captures(&msg) {
-        Some(c) => c,
-        None => return Err("I can't parse that quote".into()),
-    };
+    let caps = RE.captures(&msg).context("Regex does not match")?;
 
     let message = caps.get(1).unwrap().as_str();
     let author = caps.get(3).unwrap().as_str();
     let authored = caps.get(4).unwrap().as_str();
 
-    if message.len() > 500 {
-        return Err("Quote is too long, max length is 500".into());
-    }
-
-    if author.len() > 25 {
-        return Err("Author is too long, max length is 25".into());
-    }
-
-    if authored.len() > 25 {
-        return Err("Date is too long, max length is 25".into());
-    }
+    ensure!(message.len() < 400, "Quote is too long, max lenght is 400");
+    ensure!(
+        author.len() < 400,
+        "Author name is too long, max lenght is 25"
+    );
+    ensure!(authored.len() < 400, "Date is too long, max lenght is 25");
 
     Ok((message, author, authored))
 }

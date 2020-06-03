@@ -8,6 +8,7 @@ pub fn command() -> Arc<Command> {
     Command::with_name("math")
         .alias("quickmafs")
         .command(move |_context, args, _msg, _user| {
+            // TODO: cache context
             let context = context_map! {
                 "e" => consts::E,
                 "π" => consts::PI,
@@ -65,7 +66,7 @@ pub fn command() -> Arc<Command> {
             let expr = args.join(" ");
             Ok(match eval_with_context(&expr, &context) {
                 Ok(s) => MessageResult::Message(format!("{}", s)),
-                Err(e) => MessageResult::Message(format!("Error: {}", e)),
+                Err(err) => MessageResult::Error(err.to_string()),
             })
         })
         .about("Do some math")

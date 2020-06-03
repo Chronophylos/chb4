@@ -78,14 +78,6 @@ impl Twitch for ActionHandler {
                 .context(ActionHandlerError::ExecuteAction(action.name().to_owned()))?
             {
                 MessageResult::None => Ok(()),
-                MessageResult::Message(m) => writer
-                    .privmsg(&msg.channel, &m)
-                    .await
-                    .context(ActionHandlerError::SendPrivmsg),
-                MessageResult::MessageWithValues(m, _v) => writer
-                    .privmsg(&msg.channel, &m)
-                    .await
-                    .context(ActionHandlerError::SendPrivmsg),
                 MessageResult::Reply(m) => writer
                     .privmsg(
                         &msg.channel,
@@ -93,11 +85,16 @@ impl Twitch for ActionHandler {
                     )
                     .await
                     .context(ActionHandlerError::SendPrivmsg),
-                MessageResult::ReplyWithValues(m, _v) => writer
-                    .privmsg(
-                        &msg.channel,
-                        format!("{}, {}", user.display_name_or_name(), m).as_str(),
-                    )
+                MessageResult::Message(m) => writer
+                    .privmsg(&msg.channel, &m)
+                    .await
+                    .context(ActionHandlerError::SendPrivmsg),
+                MessageResult::Error(m) => writer
+                    .privmsg(&msg.channel, format!("Error: {}", m))
+                    .await
+                    .context(ActionHandlerError::SendPrivmsg),
+                MessageResult::MissingArgument(a) => writer
+                    .privmsg(&msg.channel, format!("Missing argument `{}`", a))
                     .await
                     .context(ActionHandlerError::SendPrivmsg),
             }?;

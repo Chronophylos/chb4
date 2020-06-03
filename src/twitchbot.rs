@@ -215,9 +215,9 @@ impl TwitchBot {
             match handler.handle(Arc::new(msg.clone()), &user).await {
                 Ok(_) => {}
                 Err(err) => error!(
-                    "Could not handle message (handler: {}): {}",
+                    "Could not handle message (handler: {}): {:?}",
                     handler.name(),
-                    err
+                    err,
                 ),
             };
         }

@@ -1,6 +1,13 @@
 use super::prelude::*;
 use chrono::prelude::*;
 use chrono_tz::Tz;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum TimeError {
+    #[error("Unkown Offset: {0}")]
+    UnknownOffset(String),
+}
 
 pub fn command() -> Arc<Command> {
     Command::with_name("time")
@@ -18,14 +25,19 @@ pub fn command() -> Arc<Command> {
                         now.with_timezone(&zone)
                             .to_rfc3339_opts(SecondsFormat::Secs, false)
                     ),
-                    Err(err) => match tz.parse::<Tz>() {
-                        Ok(zone) => format!(
+                    Err(_) => {
+                        let zone = match tz.parse::<Tz>() {
+                            Ok(z) => z,
+                            Err(_) => {
+                                return Ok(MessageResult::Error("Could not parse zone".into()))
+                            }
+                        };
+                        format!(
                             "Current Time: {}",
                             now.with_timezone(&zone)
                                 .to_rfc3339_opts(SecondsFormat::Secs, false)
-                        ),
-                        Err(_) => format!("{}", err),
-                    },
+                        )
+                    }
                 }))
             }
         })
@@ -33,7 +45,7 @@ pub fn command() -> Arc<Command> {
         .done()
 }
 
-fn str_to_offset(name: &str) -> std::result::Result<FixedOffset, MessageError> {
+fn str_to_offset(name: &str) -> Result<FixedOffset> {
     let hour = 3600;
     let minute = 60;
 
@@ -244,7 +256,7 @@ fn str_to_offset(name: &str) -> std::result::Result<FixedOffset, MessageError> {
         "WST" => FixedOffset::east(08 * hour), // Western Standard Time
         "YAKT" => FixedOffset::east(09 * hour), // Yakutsk Time
         "YEKT" => FixedOffset::east(05 * hour), // Yekaterinburg Time
-        _ => return Err(MessageError::from(format!("Unknown Offset {}", name))),
+        _ => bail!(TimeError::UnknownOffset(name.into())),
     };
     Ok(offset)
 }
